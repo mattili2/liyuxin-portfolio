@@ -146,7 +146,7 @@ body.mobile-menu-open .brand { opacity: 0; pointer-events: none; }
 .grid-view i { display: block; background: var(--placeholder); }
 .grid-view.active i { background: var(--active); }
 
-main { min-width: 0; min-height: 0; position: relative; overflow: hidden; }
+main { min-width: 0; min-height: 0; position: relative; overflow-x: hidden; overflow-y: visible; }
 .page { display: none; width: 100%; height: 100%; }
 .page.active { display: flex; }
 
@@ -334,7 +334,7 @@ main { min-width: 0; min-height: 0; position: relative; overflow: hidden; }
 .contact-block a { text-decoration: underline; text-underline-position: from-font; }
 
 @media (min-width: 901px) {
-  .featured-project { transform: translateY(40px); }
+  .featured-project { transform: translateY(36px); }
 }
 
 @media (max-width: 900px) {
