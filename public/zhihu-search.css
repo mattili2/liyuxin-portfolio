@@ -191,7 +191,16 @@ body.project-theme-dark .pdf-page > canvas[data-pdf] {
   transform: translateY(-8px);
 }
 .project-header::before {
-  content: none;
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 76px;
+  z-index: 0;
+  background: linear-gradient(to bottom, rgb(255 255 255 / .94) 0%, rgb(255 255 255 / .72) 58%, transparent 100%);
+  pointer-events: none;
+}
+body.project-theme-dark .project-header::before {
+  background: linear-gradient(to bottom, rgb(0 0 0 / .94) 0%, rgb(0 0 0 / .72) 58%, transparent 100%);
 }
 .project-header a,
 .project-header span {
@@ -465,11 +474,13 @@ body.project-menu-open .project-close { opacity: 0; pointer-events: none; }
   .project-close::before,
   .project-close::after { top: 10px; left: 5px; }
 }
-html.phone-project .project-footer { display: none; }
-@media (orientation: portrait) {
-  html.phone-project { overflow: hidden; }
-  html.phone-project body { overflow-x: hidden; overflow-y: auto; }
-  html.phone-project .landscape-prompt {
+html.compact-project .project-footer { display: none; }
+html.compact-project .pdf-deck { padding-inline: 0; }
+html.compact-project .pdf-page + .pdf-page { margin-top: 0; }
+html.compact-project .page-halo,
+html.compact-project .edge-mirror,
+html.compact-project .corner-mirror { display: none; }
+html.compact-project .landscape-prompt {
     position: fixed;
     inset: 0;
     z-index: 2000;
@@ -485,13 +496,34 @@ html.phone-project .project-footer { display: none; }
     visibility: hidden;
     pointer-events: none;
     transition: opacity 280ms ease, visibility 0s linear 280ms;
-  }
-  html.phone-project body.portrait-hint-visible .landscape-prompt {
+}
+html.compact-project body.portrait-hint-visible .landscape-prompt {
     opacity: 1;
     visibility: visible;
+    pointer-events: auto;
     transition-delay: 0s;
-  }
-  html.phone-project .landscape-phone-icon {
+}
+.landscape-prompt-dismiss {
+  margin-top: 2px;
+  padding: 2px 0;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+  font: 400 12px/1 Inter, Arial, sans-serif;
+  opacity: .72;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: opacity 180ms ease;
+}
+.landscape-prompt-dismiss:hover,
+.landscape-prompt-dismiss:focus-visible {
+  color: inherit;
+  background: transparent;
+  opacity: 1;
+}
+html.compact-project .landscape-phone-icon {
     position: relative;
     display: block;
     width: 22px;
@@ -499,8 +531,8 @@ html.phone-project .project-footer { display: none; }
     border: 1px solid currentColor;
     border-radius: 4px;
     animation: phone-turn 700ms cubic-bezier(.22, 1, .36, 1) both;
-  }
-  html.phone-project .landscape-phone-icon::after {
+}
+html.compact-project .landscape-phone-icon::after {
     content: "";
     position: absolute;
     bottom: 3px;
@@ -510,68 +542,52 @@ html.phone-project .project-footer { display: none; }
     border-radius: 50%;
     background: currentColor;
     transform: translateX(-50%);
+}
+@media (orientation: portrait) {
+  html.compact-project { overflow: hidden; }
+  html.compact-project body { overflow-x: hidden; overflow-y: auto; }
+  html.compact-project .project-header {
+    padding: 32px 20px 12px;
+    background: #fff;
+    transform: translateY(-8px);
   }
+  html.compact-project .project-header::before { content: none; }
+  html.project-theme-dark.compact-project body.project-theme-dark .project-header {
+    color: #595959;
+    background: #fff;
+  }
+  html.project-theme-dark.compact-project body.project-theme-dark .project-menu-toggle span { background: #595959; }
+  html.compact-project .project-close {
+    top: auto;
+    right: auto;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  html.compact-project .project-close:hover,
+  html.compact-project .project-close:focus-visible { transform: translateX(-50%) scale(1.08); }
 }
 @media (orientation: landscape) {
-  html.phone-project .pdf-deck {
+  html.compact-project .pdf-deck {
     width: calc(100dvh * 16 / 9);
     max-width: 100vw;
     padding-inline: 0;
     margin-inline: auto;
   }
-  html.phone-project .pdf-page {
+  html.compact-project .pdf-page {
     width: 100%;
     height: min(100dvh, calc(100vw * 9 / 16));
     aspect-ratio: 16 / 9;
   }
-  html.phone-project .pdf-page + .pdf-page { margin-top: 0; }
-  html.phone-project .page-halo { display: none; }
+  html.compact-project .project-header { display: none; }
 }
 @keyframes phone-turn { to { transform: rotate(90deg); } }
-@media (max-aspect-ratio: 1 / 1) {
-  html:not(.phone-project) body {
-    scroll-snap-type: none;
-    scroll-behavior: auto;
-    animation: none;
-  }
-  html:not(.phone-project) .pdf-deck {
-    padding-top: 51px !important;
-    padding-bottom: 0 !important;
-  }
-  html:not(.phone-project) .pdf-page {
-    opacity: 1 !important;
-    scroll-snap-align: none;
-    scroll-snap-stop: normal;
-    transition: none;
-  }
-  html:not(.phone-project) .pdf-page + .pdf-page { margin-top: 0; }
-  html:not(.phone-project) .page-halo { display: none; }
-  html:not(.phone-project) .project-header {
-    padding: 32px 20px 8px;
-    background: #fff;
-    transform: translateY(-8px);
-  }
-  html.project-theme-dark:not(.phone-project) .project-header {
-    background: #000;
-  }
-  html:not(.phone-project) .project-footer { display: none; }
-  html:not(.phone-project) .project-close {
-    top: auto;
-    right: 20px;
-    bottom: 20px;
-    transform: none;
-  }
-  html:not(.phone-project) .project-close:hover,
-  html:not(.phone-project) .project-close:focus-visible { transform: scale(1.08); }
-}
 @media (max-width: 560px) {
-  html.phone-project .project-header { padding-top: 24px; }
+  html.compact-project .project-header { padding-top: 24px; }
   .project-footer { font-size: 10px; line-height: 10px; }
 }
 
-@media (orientation: portrait) {
-  html.project-theme-dark.phone-project .landscape-prompt {
-    color: #fff;
-    background: #000;
-  }
+html.project-theme-dark.compact-project .landscape-prompt {
+  color: #fff;
+  background: #000;
 }

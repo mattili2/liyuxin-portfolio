@@ -9,25 +9,34 @@ const documents = new Map();
 const progressFill = document.querySelector(".project-progress-fill");
 let resizeTimer;
 let scrollFrame;
-let landscapePromptTimer;
+const landscapePrompt = document.querySelector(".landscape-prompt");
 const isPhoneProject = navigator.userAgentData?.mobile === true ||
   /Android|iPhone|iPod|Mobile/i.test(navigator.userAgent) ||
   (window.matchMedia("(pointer: coarse) and (hover: none)").matches && Math.min(screen.width, screen.height) <= 600);
 document.documentElement.classList.toggle("phone-project", isPhoneProject);
 
-function updateMobileLandscape() {
-  const shouldShowHint = isPhoneProject && window.matchMedia("(orientation: portrait)").matches;
-  window.clearTimeout(landscapePromptTimer);
+function updateMobileLandscape(showHint = true) {
+  const isCompactProject = isPhoneProject || window.matchMedia("(max-width: 900px)").matches;
+  document.documentElement.classList.toggle("compact-project", isCompactProject);
+  if (!showHint) return;
   document.body.classList.remove("portrait-hint-visible");
-  if (!shouldShowHint) return;
+  landscapePrompt?.setAttribute("aria-hidden", "true");
+  if (!isCompactProject || localStorage.getItem("portfolio-hide-landscape-prompt") === "1") return;
   document.body.classList.add("portrait-hint-visible");
-  landscapePromptTimer = window.setTimeout(() => {
-    document.body.classList.remove("portrait-hint-visible");
-  }, 1500);
+  landscapePrompt?.setAttribute("aria-hidden", "false");
 }
 
 
 function updateEndSpacing() {
+  if (document.documentElement.classList.contains("compact-project")) {
+    const header = document.querySelector(".project-header");
+    const headerHeight = window.matchMedia("(orientation: portrait)").matches
+      ? Math.ceil(header?.getBoundingClientRect().height || 0)
+      : 0;
+    deck.style.paddingTop = `${headerHeight}px`;
+    deck.style.paddingBottom = "0px";
+    return;
+  }
   const lastPage = pages.at(-1);
   if (!lastPage) return;
   const centerSpace = Math.max(0, (document.body.clientHeight - lastPage.getBoundingClientRect().height) / 2);
@@ -76,7 +85,11 @@ async function renderCanvas(canvas) {
   canvas.width = Math.round(renderViewport.width);
   canvas.height = Math.round(renderViewport.height);
   await page.render({ canvasContext: canvas.getContext("2d"), viewport: renderViewport }).promise;
-  updateEdgeMirrors(canvas, pixelRatio);
+  if (!document.documentElement.classList.contains("compact-project")) {
+    updateEdgeMirrors(canvas, pixelRatio);
+  } else {
+    canvas.parentElement.querySelectorAll(".page-halo, .edge-mirror, .corner-mirror").forEach((element) => element.remove());
+  }
 
   let textLayerElement = canvas.parentElement.querySelector(".textLayer");
   if (!textLayerElement) {
@@ -173,8 +186,9 @@ async function initialRender() {
 }
 
 initialRender();
-updateMobileLandscape();
-window.addEventListener("orientationchange", updateMobileLandscape);
+updateMobileLandscape(false);
+window.addEventListener("project-loading-complete", () => updateMobileLandscape(true));
+window.addEventListener("orientationchange", () => updateMobileLandscape(document.body.classList.contains("project-ready")));
 
 document.body.addEventListener("scroll", () => {
   window.cancelAnimationFrame(scrollFrame);
@@ -182,6 +196,7 @@ document.body.addEventListener("scroll", () => {
 }, { passive: true });
 
 window.addEventListener("resize", () => {
+  updateMobileLandscape(false);
   window.clearTimeout(resizeTimer);
   resizeTimer = window.setTimeout(() => renderAll().then(updateActivePage), 120);
 });

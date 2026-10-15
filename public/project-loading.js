@@ -3,6 +3,28 @@ const loadingStartedAt = performance.now();
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 let loadingFinished = false;
 const cardAnimations = [];
+const landscapePromptDismiss = document.querySelector(".landscape-prompt-dismiss");
+const landscapePrompt = document.querySelector(".landscape-prompt");
+
+const hideLandscapePrompt = () => {
+  document.body.classList.remove("portrait-hint-visible");
+  landscapePrompt?.setAttribute("aria-hidden", "true");
+};
+
+landscapePromptDismiss?.addEventListener("click", () => {
+  localStorage.setItem("portfolio-hide-landscape-prompt", "1");
+  hideLandscapePrompt();
+});
+
+landscapePrompt?.addEventListener("click", (event) => {
+  if (event.target === landscapePrompt) hideLandscapePrompt();
+});
+
+document.addEventListener("pointerdown", (event) => {
+  if (!document.body.classList.contains("portrait-hint-visible")) return;
+  if (landscapePrompt?.contains(event.target)) return;
+  hideLandscapePrompt();
+});
 
 // Match the selected staggered demo: straight moves, soft overshoot,
 // and a later size change for each following card. No tile rotation.
@@ -50,7 +72,10 @@ window.finishProjectLoading = () => {
     document.body.classList.add("project-ready");
     loader?.setAttribute("aria-hidden", "true");
     // Stop work once the existing fade-out has completed.
-    window.setTimeout(() => cardAnimations.forEach(animation => animation.cancel()), 280);
+    window.setTimeout(() => {
+      cardAnimations.forEach(animation => animation.cancel());
+      window.dispatchEvent(new Event("project-loading-complete"));
+    }, 280);
   }, remainingTime);
 };
 

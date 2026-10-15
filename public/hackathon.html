@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=Inter:wght@400&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="zhihu-search.css?v=20261013-mobile2" />
+    <link rel="stylesheet" href="zhihu-search.css?v=20261015-mobile8" />
     <link rel="stylesheet" href="hackathon.css?v=20261011-1" />
   </head>
   <body class="project-loading">
@@ -17,7 +17,8 @@
     </div>
     <div class="landscape-prompt" aria-hidden="true">
       <span class="landscape-phone-icon"></span>
-      <span>横屏浏览项目</span>
+      <span>手机横屏体验更佳</span>
+      <button class="landscape-prompt-dismiss" type="button">不再提醒</button>
     </div>
     <div class="project-progress" aria-hidden="true"><div class="project-progress-fill"></div></div>
     <a class="project-close" href="./" aria-label="关闭项目并返回主页"></a>
@@ -39,8 +40,8 @@
       </nav>
     </div>
     <main class="pdf-deck" aria-label="黑客松视觉设计">
-      <section class="pdf-page static-page" aria-label="Frame 0" style="--page-image: url('assets/hackathon-pdf/frame-0.png')"><img src="assets/hackathon-pdf/frame-0.png" alt="黑客松视觉设计项目封面" /></section>
-      <section class="pdf-page static-page" aria-label="Frame 1" style="--page-image: url('assets/hackathon-pdf/frame-1.png')"><img src="assets/hackathon-pdf/frame-1.png" alt="黑客松视觉设计成果展示" /></section>
+      <section class="pdf-page" aria-label="Frame 0" style="--cover-image: url('assets/hackathon-cover.png')"><canvas data-pdf="assets/hackathon-pdf/frame-0.pdf?v=20261015-structured1"></canvas></section>
+      <section class="pdf-page" aria-label="Frame 1"><canvas data-pdf="assets/hackathon-pdf/frame-1.pdf?v=20261015-structured1"></canvas></section>
     </main>
     <footer class="project-footer">
       <div class="project-footer-contact">
@@ -52,7 +53,7 @@
         <p>INTERNET PRODUCTS</p>
       </div>
     </footer>
-    <script src="project-loading.js?v=20261013-cards6"></script>
-    <script src="hackathon.js?v=20261013-mobile1"></script>
+    <script src="project-loading.js?v=20261015-cards8"></script>
+    <script type="module" src="zhihu-search-pdf.js?v=20261015-mobile8"></script>
   </body>
 </html>

@@ -8,11 +8,13 @@ const isPhoneProject = navigator.userAgentData?.mobile === true ||
   (window.matchMedia("(pointer: coarse) and (hover: none)").matches && Math.min(screen.width, screen.height) <= 600);
 document.documentElement.classList.toggle("phone-project", isPhoneProject);
 
-function updateMobileLandscape() {
-  const shouldShowHint = isPhoneProject && window.matchMedia("(orientation: portrait)").matches;
+function updateMobileLandscape(showHint = true) {
+  const isCompactProject = isPhoneProject || window.matchMedia("(max-width: 900px)").matches;
+  document.documentElement.classList.toggle("compact-project", isCompactProject);
+  if (!showHint) return;
   window.clearTimeout(landscapePromptTimer);
   document.body.classList.remove("portrait-hint-visible");
-  if (!shouldShowHint) return;
+  if (!isCompactProject || localStorage.getItem("portfolio-hide-landscape-prompt") === "1") return;
   document.body.classList.add("portrait-hint-visible");
   landscapePromptTimer = window.setTimeout(() => {
     document.body.classList.remove("portrait-hint-visible");
@@ -21,6 +23,15 @@ function updateMobileLandscape() {
 
 
 function updateEndSpacing() {
+  if (document.documentElement.classList.contains("compact-project")) {
+    const header = document.querySelector(".project-header");
+    const headerHeight = window.matchMedia("(orientation: portrait)").matches
+      ? Math.ceil(header?.getBoundingClientRect().height || 0)
+      : 0;
+    deck.style.paddingTop = `${headerHeight}px`;
+    deck.style.paddingBottom = "0px";
+    return;
+  }
   const lastPage = pages.at(-1);
   if (!lastPage) return;
   const centerSpace = Math.max(0, (document.body.clientHeight - lastPage.getBoundingClientRect().height) / 2);
@@ -204,6 +215,10 @@ function updatePageHalo(image) {
 }
 
 function renderMirrors() {
+  if (document.documentElement.classList.contains("compact-project")) {
+    document.querySelectorAll(".page-halo, .edge-mirror, .corner-mirror").forEach(element => element.remove());
+    return;
+  }
   document.querySelectorAll(".static-page > img").forEach(image => {
     if (image.complete && image.naturalWidth) updatePageHalo(image);
     else image.addEventListener("load", () => updatePageHalo(image), { once: true });
@@ -236,10 +251,12 @@ document.body.addEventListener("scroll", () => {
   scrollFrame = window.requestAnimationFrame(updateVisiblePages);
 }, { passive: true });
 window.addEventListener("resize", () => {
+  updateMobileLandscape(false);
   updateEndSpacing();
   updateVisiblePages();
   renderMirrors();
 });
+updateMobileLandscape(false);
 updateEndSpacing();
 updateVisiblePages();
 renderMirrors();
@@ -250,8 +267,8 @@ if (!firstProjectImage || (firstProjectImage.complete && firstProjectImage.natur
   firstProjectImage.addEventListener("load", () => window.finishProjectLoading?.(), { once: true });
   firstProjectImage.addEventListener("error", () => window.finishProjectLoading?.(), { once: true });
 }
-updateMobileLandscape();
-window.addEventListener("orientationchange", updateMobileLandscape);
+window.addEventListener("project-loading-complete", () => updateMobileLandscape(true));
+window.addEventListener("orientationchange", () => updateMobileLandscape(document.body.classList.contains("project-ready")));
 const menu = document.querySelector(".project-menu-overlay");
 const menuToggle = document.querySelector(".project-menu-toggle");
 function closeMenu() {
