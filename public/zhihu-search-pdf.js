@@ -16,14 +16,14 @@ const isPhoneProject = navigator.userAgentData?.mobile === true ||
 document.documentElement.classList.toggle("phone-project", isPhoneProject);
 
 function updateMobileLandscape() {
-  const shouldRotate = isPhoneProject && window.matchMedia("(orientation: portrait)").matches;
+  const shouldShowHint = isPhoneProject && window.matchMedia("(orientation: portrait)").matches;
   window.clearTimeout(landscapePromptTimer);
-  document.body.classList.remove("mobile-project-landscape");
-  if (!shouldRotate) return;
+  document.body.classList.remove("portrait-hint-visible");
+  if (!shouldShowHint) return;
+  document.body.classList.add("portrait-hint-visible");
   landscapePromptTimer = window.setTimeout(() => {
-    document.body.classList.add("mobile-project-landscape");
-    window.setTimeout(() => renderAll().then(updateActivePage), 320);
-  }, 900);
+    document.body.classList.remove("portrait-hint-visible");
+  }, 1500);
 }
 
 
@@ -91,9 +91,6 @@ async function renderCanvas(canvas) {
     viewport: cssViewport,
   });
   await textLayer.render();
-  textLayerElement.querySelectorAll("span").forEach((span) => {
-    if (!span.textContent.trim()) span.classList.add("selection-spacer");
-  });
 }
 
 function updateEdgeMirrors(canvas, pixelRatio) {

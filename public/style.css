@@ -186,6 +186,28 @@ main { min-width: 0; min-height: 0; position: relative; overflow-x: hidden; over
   pointer-events: none;
 }
 .paper-canvas[hidden] { display: none; }
+.video-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(255, 255, 255, .35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 10px rgba(0, 0, 0, .16);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 1px 5px rgba(0, 0, 0, .28));
+  transition: opacity 180ms ease;
+  animation: video-loading-spin .72s linear infinite;
+}
+.featured-media.video-is-loading .video-loading { opacity: 1; }
+@keyframes video-loading-spin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
 .featured-media.is-dragging { cursor: grabbing; }
 .media img,
 .media video,
@@ -229,7 +251,8 @@ main { min-width: 0; min-height: 0; position: relative; overflow-x: hidden; over
   line-clamp: 2;
 }
 .project-details > .text-roll-mask:nth-child(2) { max-height: 2.8em; }
-.project-date { flex: 0 0 auto; }
+.project-date { position: relative; z-index: 1; flex: 0 0 auto; line-height: 1.5; padding-bottom: 4px; }
+.project-details > .text-roll-mask:last-child { min-height: calc(1.5em + 4px); overflow: visible; }
 .project-arrow {
   position: absolute;
   top: 52px;
@@ -334,7 +357,7 @@ main { min-width: 0; min-height: 0; position: relative; overflow-x: hidden; over
 .contact-block a { text-decoration: underline; text-underline-position: from-font; }
 
 @media (min-width: 901px) {
-  .featured-project { transform: translateY(36px); }
+  .featured-project { transform: translateY(24px); }
 }
 
 @media (max-width: 900px) {

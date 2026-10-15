@@ -5,7 +5,7 @@ const projects = [
     description: "通过摘要页内展开与内容发现前置，支持用户快速了解事件，并继续探索相关内容。",
     date: "2026.09",
     mediaType: "image",
-    media: "assets/ai-search-cover.png?v=20261013-1",
+    media: "assets/ai-search-cover.png?v=20261015-figma",
     page: "ai-search.html",
   },
   {
@@ -14,7 +14,7 @@ const projects = [
     description: "通过双预置词展示与搜索入口调整，增加热门、长尾及个性化搜索词的曝光，让有限的入口承载更多内容。",
     date: "2026.09",
     mediaType: "image",
-    media: "assets/zhihu-cover-2.png?v=20261013-1",
+    media: "assets/zhihu-cover-2.png?v=20261015-figma",
     page: "zhihu-search.html",
   },
   {
@@ -31,7 +31,8 @@ const projects = [
     category: "智谱清言交互设计",
     description: "暂无",
     date: "",
-    mediaType: "placeholder",
+    mediaType: "image",
+    media: "assets/agentmore-cover.png?v=20261014-2",
   },
   {
     title: "MonoLOG：通过对话记录专注",
@@ -65,7 +66,8 @@ const projects = [
     description: "IgnitCube 是一个以“火种资源”为概念的互动灯光装置。作品以火种的有限性、传递性与合作共享为核心，通过人与人之间共同传递光源，引发人们对资源珍惜与共享的思考，同时鼓励公共空间中的合作、交流与互动。",
     date: "2024.09",
     mediaType: "video",
-    media: "assets/ignitcube.mp4",
+    media: "assets/ignitcube.mp4?v=20261014-hq1",
+    poster: "assets/ignitcube-poster.png?v=20261014-2",
   },
   {
     title: "Traces",
@@ -73,7 +75,8 @@ const projects = [
     description: "Traces 是一款为短期居住者设计的记忆盒子，用于珍藏那些无法带走却值得留存的珍贵物品与回忆。",
     date: "2025.09 - 2025.12",
     mediaType: "video",
-    media: "assets/traces.mp4",
+    media: "assets/traces.mp4?v=20261014-hq1",
+    poster: "assets/traces-poster.png?v=20261014-2",
   },
 ];
 
@@ -86,6 +89,7 @@ let activeProject = Number.isInteger(returnProject) && returnProject >= 0 && ret
   ? returnProject
   : 0;
 let activeView = "selected";
+let hasPlaybackInteraction = false;
 const carouselDuration = 560;
 const carouselEasing = "cubic-bezier(.4, 0, .2, 1)";
 
@@ -111,9 +115,10 @@ function closeMobileMenu() {
   document.body.classList.remove("mobile-menu-open");
 }
 
-function mediaContentMarkup(project) {
+function mediaContentMarkup(project, { preview = false } = {}) {
   if (project.mediaType === "video") {
-    return `<video src="${project.media}" aria-label="${project.title}" autoplay muted loop playsinline preload="metadata"></video>`;
+    if (preview) return `<img src="${project.poster}" alt="${project.title}">`;
+    return `<video src="${project.media}" poster="${project.poster}" aria-label="${project.title}" autoplay muted loop playsinline preload="auto"></video><span class="video-loading" role="status" aria-label="视频加载中"></span>`;
   }
   if (project.mediaType === "placeholder") {
     return `<div class="project-placeholder" role="img" aria-label="${project.title}"></div>`;
@@ -122,7 +127,54 @@ function mediaContentMarkup(project) {
 }
 
 function mediaMarkup(project) {
-  return `<div class="media">${mediaContentMarkup(project)}</div>`;
+  return `<div class="media">${mediaContentMarkup(project, { preview: true })}</div>`;
+}
+
+function syncVideoPlayback() {
+  document.querySelectorAll("video").forEach(video => {
+    const isFeaturedVideo = activeView === "selected" && video.closest(".featured-media");
+    const shouldPlayWithSound = Boolean(isFeaturedVideo && hasPlaybackInteraction);
+    if (!isFeaturedVideo) {
+      video.muted = true;
+      return;
+    }
+    if (!video.paused) {
+      video.muted = !shouldPlayWithSound;
+      return;
+    }
+    video.muted = true;
+    video.play().then(() => {
+      video.muted = !shouldPlayWithSound;
+    }).catch(() => {});
+  });
+}
+
+function bindFeaturedVideoLoading() {
+  const container = document.querySelector(".featured-media");
+  const video = container.querySelector("video");
+  container.classList.toggle("has-video", Boolean(video));
+  container.classList.toggle("video-is-loading", Boolean(video));
+  if (!video) return;
+  const showLoading = () => container.classList.add("video-is-loading");
+  const hideLoading = () => container.classList.remove("video-is-loading");
+  const hideAfterPresentedFrame = () => {
+    if ("requestVideoFrameCallback" in video) {
+      video.requestVideoFrameCallback(() => hideLoading());
+      return;
+    }
+    if (video.currentTime > 0) hideLoading();
+  };
+  video.addEventListener("loadstart", showLoading);
+  video.addEventListener("waiting", showLoading);
+  video.addEventListener("stalled", showLoading);
+  video.addEventListener("seeking", showLoading);
+  video.addEventListener("playing", hideAfterPresentedFrame);
+  video.addEventListener("timeupdate", hideAfterPresentedFrame, { once: true });
+  video.addEventListener("error", hideLoading);
+  video.muted = true;
+  video.load();
+  video.play().catch(() => {});
+  if (!video.paused && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) hideAfterPresentedFrame();
 }
 
 gallery.innerHTML = `<div class="gallery-grid">${projects.map((project, index) => `
@@ -142,14 +194,16 @@ function renderProject() {
   const previousProject = projects[(activeProject - 1 + projects.length) % projects.length];
   const nextProject = projects[(activeProject + 1) % projects.length];
   document.querySelector(".featured-media").innerHTML = mediaContentMarkup(project);
-  document.querySelector(".project-arrow-left").innerHTML = mediaContentMarkup(previousProject);
-  document.querySelector(".project-arrow-right").innerHTML = mediaContentMarkup(nextProject);
+  bindFeaturedVideoLoading();
+  document.querySelector(".project-arrow-left").innerHTML = mediaContentMarkup(previousProject, { preview: true });
+  document.querySelector(".project-arrow-right").innerHTML = mediaContentMarkup(nextProject, { preview: true });
   document.querySelector(".selected-page .project-title").textContent = project.title;
   document.querySelector(".selected-page .project-category").textContent = project.category;
   document.querySelector(".project-description").textContent = project.description;
   document.querySelector(".project-date").textContent = project.date;
   document.querySelectorAll(".project-dot").forEach((dot, index) => dot.classList.toggle("active", index === activeProject));
   paperHover?.refresh();
+  syncVideoPlayback();
   window.requestAnimationFrame(alignSideCards);
 }
 
@@ -176,19 +230,20 @@ async function changeProject(direction) {
   if (window.matchMedia("(max-width: 900px)").matches) {
     const project = page.querySelector(".featured-project");
     page.classList.add("is-transitioning");
-    const fadeOut = project.animate([
-      { opacity: 1 },
-      { opacity: 0 },
-    ], { duration: 160, easing: "ease-out", fill: "forwards" });
-    await fadeOut.finished;
+    const slideDistance = Math.max(project.getBoundingClientRect().width, window.innerWidth);
+    const slideOut = project.animate([
+      { transform: "translateX(0)" },
+      { transform: `translateX(${-direction * slideDistance}px)` },
+    ], { duration: 220, easing: "cubic-bezier(.4, 0, .2, 1)", fill: "forwards" });
+    await slideOut.finished;
     activeProject = (activeProject + direction + projects.length) % projects.length;
     renderProject();
-    fadeOut.cancel();
-    const fadeIn = project.animate([
-      { opacity: 0 },
-      { opacity: 1 },
+    slideOut.cancel();
+    const slideIn = project.animate([
+      { transform: `translateX(${direction * slideDistance}px)` },
+      { transform: "translateX(0)" },
     ], { duration: 260, easing: "cubic-bezier(.22, 1, .36, 1)" });
-    await fadeIn.finished;
+    await slideIn.finished;
     page.classList.remove("is-transitioning");
     return;
   }
@@ -229,7 +284,7 @@ async function changeProject(direction) {
     : sourceRect.left - sourceRect.width - 40;
   replenisher.setAttribute("aria-hidden", "true");
   const replenishingProject = projects[(activeProject + direction * 2 + projects.length) % projects.length];
-  replenisher.innerHTML = mediaContentMarkup(replenishingProject);
+  replenisher.innerHTML = mediaContentMarkup(replenishingProject, { preview: true });
   replenisher.tabIndex = -1;
   Object.assign(replenisher.style, {
     position: "fixed",
@@ -320,6 +375,7 @@ async function showGridWithTransition() {
   const copy = document.querySelector(".featured-copy");
   const arrows = [...document.querySelectorAll(".project-arrow")];
   const galleryPage = document.querySelector(".gallery-page");
+  const galleryGrid = galleryPage.querySelector(".gallery-grid");
   const galleryCards = [...galleryPage.querySelectorAll(".gallery-card")];
   updateViewControls("gallery");
   galleryPage.classList.add("transition-grid");
@@ -328,7 +384,23 @@ async function showGridWithTransition() {
   const sourceRect = media.getBoundingClientRect();
   const target = galleryPage.querySelectorAll(".gallery-card .media")[activeProject];
   target.style.opacity = "0";
-  const targetRect = target.getBoundingClientRect();
+  const targetStartRect = target.getBoundingClientRect();
+  const galleryRect = galleryPage.getBoundingClientRect();
+  const visibleInset = 24;
+  let targetScrollTop = galleryPage.scrollTop;
+  if (targetStartRect.bottom > galleryRect.bottom - visibleInset) {
+    targetScrollTop += targetStartRect.bottom - (galleryRect.bottom - visibleInset);
+  } else if (targetStartRect.top < galleryRect.top + visibleInset) {
+    targetScrollTop += targetStartRect.top - (galleryRect.top + visibleInset);
+  }
+  targetScrollTop = Math.max(0, Math.min(targetScrollTop, galleryPage.scrollHeight - galleryPage.clientHeight));
+  const scrollDistance = targetScrollTop - galleryPage.scrollTop;
+  const targetRect = {
+    left: targetStartRect.left,
+    top: targetStartRect.top - scrollDistance,
+    width: targetStartRect.width,
+    height: targetStartRect.height,
+  };
   const flyer = document.createElement("div");
   flyer.className = "carousel-flyer";
   flyer.innerHTML = media.innerHTML;
@@ -359,11 +431,19 @@ async function showGridWithTransition() {
     { transform: "translate(0, 0) scale(1)" },
     { transform: `translate(${targetRect.left - sourceRect.left}px, ${targetRect.top - sourceRect.top}px) scale(${targetRect.width / sourceRect.width})` },
   ], { duration: carouselDuration, easing: carouselEasing, fill: "forwards" });
+  const gridScrollAnimation = Math.abs(scrollDistance) > 1 ? galleryGrid.animate([
+    { transform: "translateY(0)" },
+    { transform: `translateY(${-scrollDistance}px)` },
+  ], { duration: carouselDuration, easing: carouselEasing, fill: "forwards" }) : null;
   const cardReveals = galleryCards.map(card => card.animate([
       { opacity: 0 },
       { opacity: 1 },
     ], { duration: 260, easing: "ease-out", fill: "forwards" }));
-  await cardAnimation.finished;
+  await Promise.all([cardAnimation.finished, gridScrollAnimation?.finished]);
+  if (gridScrollAnimation) {
+    galleryPage.scrollTop = targetScrollTop;
+    gridScrollAnimation.cancel();
+  }
   setView("gallery");
   galleryPage.classList.remove("transition-grid");
   galleryCards.forEach(card => { card.style.opacity = ""; });
@@ -473,6 +553,7 @@ function setView(view) {
   dots.style.display = view === "selected" ? "flex" : "none";
   const viewHash = `#${view}`;
   if (window.location.hash !== viewHash) window.history.replaceState(null, "", viewHash);
+  syncVideoPlayback();
   if (view === "selected") window.requestAnimationFrame(alignSideCards);
 }
 
@@ -525,6 +606,14 @@ document.querySelectorAll("[data-view]").forEach(button => button.addEventListen
   }
   setView(button.dataset.view);
 }));
+document.addEventListener("pointerdown", () => {
+  hasPlaybackInteraction = true;
+  syncVideoPlayback();
+}, { capture: true });
+document.addEventListener("keydown", () => {
+  hasPlaybackInteraction = true;
+  syncVideoPlayback();
+}, { capture: true });
 mobileMenuToggle.addEventListener("click", () => {
   if (mobileMenuToggle.getAttribute("aria-expanded") === "true") {
     closeMobileMenu();
@@ -680,33 +769,37 @@ class PaperHover {
     if (!this.gl) return;
     if (this.canvas.parentElement !== this.element) this.element.appendChild(this.canvas);
     this.element.classList.remove("paper-ready");
+    this.canvas.hidden = true;
     this.source = this.element.querySelector("img, video");
     if (!this.enabled.matches || !this.source) {
       this.canvas.hidden = true;
       return;
     }
-    this.canvas.hidden = false;
+    const source = this.source;
     const ready = () => {
-      if (this.source && this.enabled.matches) {
-        this.uploadTexture();
+      if (this.source === source && this.enabled.matches) {
+        if (!this.uploadTexture()) return;
+        this.canvas.hidden = false;
         this.element.classList.add("paper-ready");
       }
     };
-    if (this.source instanceof HTMLImageElement) {
-      if (this.source.complete && this.source.naturalWidth) ready();
-      else this.source.addEventListener("load", ready, { once: true });
-    } else if (this.source.readyState >= 2) ready();
-    else this.source.addEventListener("loadeddata", ready, { once: true });
+    if (source instanceof HTMLImageElement) {
+      if (source.complete && source.naturalWidth) ready();
+      else source.addEventListener("load", ready, { once: true });
+    } else if (source.readyState >= 2) ready();
+    else source.addEventListener("loadeddata", ready, { once: true });
   }
 
   uploadTexture() {
-    if (!this.source) return;
+    if (!this.source) return false;
     try {
       this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
       this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
       this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.source);
+      return true;
     } catch (_) {
       this.element.classList.remove("paper-ready");
+      return false;
     }
   }
 
@@ -861,10 +954,11 @@ document.addEventListener("click", event => {
   const trigger = event.target.closest("[data-project]");
   if (!trigger) return;
   activeProject = Number(trigger.dataset.project);
-  renderProject();
   if (trigger.classList.contains("gallery-card")) {
     showSelectedWithTransition(activeProject);
+    return;
   }
+  renderProject();
 });
 
 document.addEventListener("keydown", event => {
