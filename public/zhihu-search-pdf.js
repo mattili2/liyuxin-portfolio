@@ -6,10 +6,12 @@ const canvases = [...document.querySelectorAll("canvas[data-pdf]")];
 const pages = [...document.querySelectorAll(".pdf-page")];
 const deck = document.querySelector(".pdf-deck");
 const documents = new Map();
+const renderedCanvases = new WeakSet();
 const progressFill = document.querySelector(".project-progress-fill");
 let resizeTimer;
 let scrollFrame;
 const landscapePrompt = document.querySelector(".landscape-prompt");
+const isAmbientReader = document.body.classList.contains("ambient-reader");
 const isPhoneProject = navigator.userAgentData?.mobile === true ||
   /Android|iPhone|iPod|Mobile/i.test(navigator.userAgent) ||
   (window.matchMedia("(pointer: coarse) and (hover: none)").matches && Math.min(screen.width, screen.height) <= 600);
@@ -28,13 +30,36 @@ function updateMobileLandscape(showHint = true) {
 
 
 function updateEndSpacing() {
+  if (isAmbientReader) {
+    const pageHeight = pages[0]?.offsetHeight || 0;
+    const isMobileReader = isPhoneProject || document.documentElement.classList.contains("compact-project");
+    const visiblePageCount = pageHeight ? document.body.clientHeight / pageHeight : 1;
+    const shouldCenterPages = !isMobileReader || visiblePageCount <= 1.2;
+    const readerModeChanged = document.body.classList.contains("reader-centered") !== shouldCenterPages;
+    document.body.classList.toggle("reader-centered", shouldCenterPages);
+    document.body.classList.toggle("reader-flow", !shouldCenterPages);
+    if (shouldCenterPages) {
+      const edgeSpace = Math.max(0, Math.round((document.body.clientHeight - pageHeight) / 2));
+      deck.style.setProperty("--reader-edge-space", `${edgeSpace}px`);
+      deck.style.setProperty("--reader-page-gap", `${edgeSpace * 2}px`);
+    } else {
+      deck.style.setProperty("--reader-edge-space", "0px");
+      deck.style.setProperty("--reader-page-gap", "0px");
+      if (readerModeChanged) document.body.classList.remove("reader-ui-idle");
+    }
+    if (readerModeChanged) window.dispatchEvent(new CustomEvent("reader-layout-change"));
+    return;
+  }
   if (document.documentElement.classList.contains("compact-project")) {
     const header = document.querySelector(".project-header");
-    const headerHeight = window.matchMedia("(orientation: portrait)").matches
+    const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+    const headerHeight = isPortrait
       ? Math.ceil(header?.getBoundingClientRect().height || 0)
       : 0;
     deck.style.paddingTop = `${headerHeight}px`;
-    deck.style.paddingBottom = "0px";
+    deck.style.paddingBottom = isPortrait
+      ? `max(64px, env(safe-area-inset-bottom))`
+      : "0px";
     return;
   }
   const lastPage = pages.at(-1);
@@ -54,7 +79,10 @@ function updateActivePage() {
   });
   const isStackedDesktop = !isPhoneProject && window.matchMedia("(max-aspect-ratio: 1 / 1)").matches;
   let progress;
-  if (isStackedDesktop) {
+  if (document.documentElement.classList.contains("compact-project")) {
+    const maxScroll = Math.max(1, document.body.scrollHeight - document.body.clientHeight);
+    progress = document.body.scrollTop / maxScroll;
+  } else if (isStackedDesktop) {
     const progressStart = pages[1]?.offsetTop || 0;
     const maxScroll = Math.max(progressStart + 1, document.body.scrollHeight - document.body.clientHeight);
     progress = (document.body.scrollTop - progressStart) / (maxScroll - progressStart);
@@ -85,7 +113,7 @@ async function renderCanvas(canvas) {
   canvas.width = Math.round(renderViewport.width);
   canvas.height = Math.round(renderViewport.height);
   await page.render({ canvasContext: canvas.getContext("2d"), viewport: renderViewport }).promise;
-  if (!document.documentElement.classList.contains("compact-project")) {
+  if (!document.documentElement.classList.contains("compact-project") && !isAmbientReader) {
     updateEdgeMirrors(canvas, pixelRatio);
   } else {
     canvas.parentElement.querySelectorAll(".page-halo, .edge-mirror, .corner-mirror").forEach((element) => element.remove());
@@ -104,6 +132,7 @@ async function renderCanvas(canvas) {
     viewport: cssViewport,
   });
   await textLayer.render();
+  renderedCanvases.add(canvas);
 }
 
 function updateEdgeMirrors(canvas, pixelRatio) {
@@ -161,24 +190,56 @@ function updateEdgeMirrors(canvas, pixelRatio) {
 }
 
 async function renderAll() {
-  await Promise.all(canvases.map(renderCanvas));
+  await Promise.all(canvases.filter(canvas => renderedCanvases.has(canvas)).map(renderCanvas));
   updateEndSpacing();
 }
 
+function renderRemainingOnDemand(canvasesToObserve) {
+  if (!("IntersectionObserver" in window)) {
+    Promise.all(canvasesToObserve.map(renderCanvas)).then(() => {
+      updateEndSpacing();
+      updateActivePage();
+    });
+    return;
+  }
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      const canvas = entry.target;
+      observer.unobserve(canvas);
+      renderCanvas(canvas).then(() => {
+        updateEndSpacing();
+        updateActivePage();
+      });
+    });
+  }, { rootMargin: "150% 0px" });
+  canvasesToObserve.forEach(canvas => observer.observe(canvas));
+}
+
 async function initialRender() {
-  if (!canvases.length) {
+  if (!pages.length) {
     window.finishProjectLoading?.();
     return;
   }
 
   try {
-    await renderCanvas(canvases[0]);
+    const firstCanvas = pages[0].querySelector("canvas[data-pdf]");
+    if (firstCanvas) {
+      await renderCanvas(firstCanvas);
+    } else {
+      const firstPageImages = [...pages[0].querySelectorAll("img")];
+      await Promise.all(firstPageImages.map((image) => image.complete
+        ? Promise.resolve()
+        : new Promise((resolve) => {
+            image.addEventListener("load", resolve, { once: true });
+            image.addEventListener("error", resolve, { once: true });
+          })));
+    }
     updateEndSpacing();
     updateActivePage();
     window.finishProjectLoading?.();
-    await Promise.all(canvases.slice(1).map(renderCanvas));
-    updateEndSpacing();
-    updateActivePage();
+    const remainingCanvases = firstCanvas ? canvases.filter((canvas) => canvas !== firstCanvas) : canvases;
+    renderRemainingOnDemand(remainingCanvases);
   } catch (error) {
     window.finishProjectLoading?.();
     throw error;
@@ -186,6 +247,72 @@ async function initialRender() {
 }
 
 initialRender();
+
+if (isAmbientReader) {
+  let readerUiIdleTimer = 0;
+  let readerAutoHideEnabled = true;
+  const updateFirstPageMenuOffset = (controlsVisible) => {
+    if (!document.body.classList.contains("reader-flow")) return;
+    if (!controlsVisible || document.body.scrollTop > 2) {
+      deck.style.setProperty("--reader-menu-offset", "0px");
+      deck.style.setProperty("--reader-first-page-scale", "1");
+      document.body.classList.remove("reader-menu-visible-at-top");
+      return;
+    }
+    const header = document.querySelector(".project-header");
+    const footer = document.querySelector(".project-footer");
+    const firstPage = pages[0];
+    const headerHeight = controlsVisible && header && getComputedStyle(header).display !== "none"
+      ? Math.ceil(header.getBoundingClientRect().height)
+      : 0;
+    const footerHeight = controlsVisible && footer && getComputedStyle(footer).display !== "none"
+      ? Math.ceil(footer.getBoundingClientRect().height)
+      : 0;
+    const availableHeight = Math.max(1, document.body.clientHeight - headerHeight - footerHeight);
+    const firstPageScale = controlsVisible && firstPage
+      ? Math.min(1, availableHeight / firstPage.offsetHeight)
+      : 1;
+    deck.style.setProperty("--reader-menu-offset", `${headerHeight}px`);
+    deck.style.setProperty("--reader-first-page-scale", firstPageScale.toFixed(4));
+    document.body.classList.add("reader-menu-visible-at-top");
+  };
+  const showReaderUi = () => {
+    window.clearTimeout(readerUiIdleTimer);
+    document.body.classList.remove("reader-ui-idle");
+    updateFirstPageMenuOffset(true);
+    if (!readerAutoHideEnabled || !document.body.classList.contains("reader-centered")) return;
+    readerUiIdleTimer = window.setTimeout(() => {
+      document.body.classList.add("reader-ui-idle");
+    }, 2200);
+  };
+  window.addEventListener("pointermove", (event) => {
+    if (event.pointerType !== "touch" && event.clientY <= 120) showReaderUi();
+  }, { passive: true });
+  deck.addEventListener("click", (event) => {
+    if (event.target.closest("a, button")) return;
+    if (window.getSelection()?.toString().trim()) return;
+    if (document.body.classList.contains("reader-ui-idle")) {
+      readerAutoHideEnabled = false;
+      window.clearTimeout(readerUiIdleTimer);
+      document.body.classList.remove("reader-ui-idle");
+      updateFirstPageMenuOffset(true);
+      return;
+    }
+    readerAutoHideEnabled = false;
+    window.clearTimeout(readerUiIdleTimer);
+    document.body.classList.add("reader-ui-idle");
+    updateFirstPageMenuOffset(false);
+  });
+  window.addEventListener("keydown", showReaderUi);
+  window.addEventListener("reader-layout-change", showReaderUi);
+  document.body.addEventListener("scroll", () => {
+    if (document.body.scrollTop <= 2) {
+      updateFirstPageMenuOffset(!document.body.classList.contains("reader-ui-idle"));
+    }
+  }, { passive: true });
+  showReaderUi();
+}
+
 updateMobileLandscape(false);
 window.addEventListener("project-loading-complete", () => updateMobileLandscape(true));
 window.addEventListener("orientationchange", () => updateMobileLandscape(document.body.classList.contains("project-ready")));

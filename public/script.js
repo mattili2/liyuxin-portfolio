@@ -1,4 +1,4 @@
-const projects = [
+const projectCatalog = [
   {
     title: "热点搜索下的 AI 结果优化",
     category: "知乎社区产品设计",
@@ -35,7 +35,7 @@ const projects = [
     media: "assets/agentmore-cover.png?v=20261014-2",
   },
   {
-    title: "MonoLOG：通过对话记录专注",
+    title: "MonoLOG",
     category: "Vibe Coding/ 电脑端App设计",
     description: "MonoLOG（独白）是一款对话式记录工具，将专注记录融入自然对话，结合 AI 数字陪伴与监督，让整个过程更加自然、低负担、易坚持。",
     date: "2026.03, 2026.07",
@@ -43,12 +43,12 @@ const projects = [
     media: "assets/monolog.png",
   },
   {
-    title: "Whale TV OS 体验优化",
+    title: "whale tv OS 10",
     category: "电视操作系统 UX 设计",
     description: "此项目为在 Whale TV 实习中的工作整理。在本项目中，我主要负责线上和线下两部分的用户测试与分析，并基于研究结果梳理核心痛点，完成交互设计的优化与迭代。",
     date: "2025.02 - 2025.06",
     mediaType: "image",
-    media: "assets/whale-tv-cover.png?v=20261013-1",
+    media: "assets/whale-tv-cover.png?v=20261120-figma2",
     page: "whale-tv.html",
   },
   {
@@ -78,7 +78,19 @@ const projects = [
     media: "assets/traces.mp4?v=20261014-hq1",
     poster: "assets/traces-poster.png?v=20261014-2",
   },
+  {
+    title: "AI 看山",
+    category: "知乎社区产品设计",
+    description: "负责 AI 看山的视觉规范、新场景入口与交互衔接，以及基础对话体验优化。通过 AI 能力提升内容消费效率，并以人格化表达传递陪伴感，强化品牌感知。",
+    date: "2026.10 - 2026.11",
+    mediaType: "image",
+    media: "assets/ai-kanshan-cover.png?v=20261120-figma1",
+    page: "ai-kanshan.html",
+  },
 ];
+
+const projectOrder = [9, 5, 6, 4, 8, 7];
+const projects = projectOrder.map(index => projectCatalog[index]);
 
 const projectParam = new URLSearchParams(window.location.search).get("project");
 const requestedProject = projectParam === null ? NaN : Number(projectParam);
@@ -92,42 +104,85 @@ let activeView = "selected";
 let hasPlaybackInteraction = false;
 const carouselDuration = 560;
 const carouselEasing = "cubic-bezier(.4, 0, .2, 1)";
+const mobileCarouselDuration = 340;
+const projectAutoplayIdleDelay = 12000;
+const projectAutoplayInterval = 8000;
 
 const gallery = document.querySelector("#gallery");
 const dots = document.querySelector(".project-dots");
 const mobileMenu = document.querySelector(".mobile-menu-overlay");
 const mobileMenuToggle = document.querySelector(".mobile-menu-toggle");
 let paperHover = null;
+let mobileMenuTransitionTimer = 0;
+let projectAutoplayTimer = 0;
+let projectAutoplayActive = false;
+
+function scheduleProjectAutoplay() {
+  window.clearTimeout(projectAutoplayTimer);
+  if (
+    activeView !== "selected" ||
+    document.hidden ||
+    document.body.classList.contains("mobile-menu-open") ||
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) return;
+  const delay = projectAutoplayActive ? projectAutoplayInterval : projectAutoplayIdleDelay;
+  projectAutoplayTimer = window.setTimeout(async () => {
+    const selectedPage = document.querySelector(".selected-page");
+    if (activeView !== "selected" || document.hidden || selectedPage.classList.contains("is-transitioning")) {
+      scheduleProjectAutoplay();
+      return;
+    }
+    projectAutoplayActive = true;
+    await changeProject(1);
+    scheduleProjectAutoplay();
+  }, delay);
+}
+
+function registerProjectInteraction() {
+  projectAutoplayActive = false;
+  scheduleProjectAutoplay();
+}
 
 function openMobileMenu() {
+  window.clearTimeout(mobileMenuTransitionTimer);
+  window.clearTimeout(projectAutoplayTimer);
   mobileMenu.hidden = false;
-  mobileMenu.classList.add("open");
+  window.requestAnimationFrame(() => mobileMenu.classList.add("open"));
   mobileMenuToggle.setAttribute("aria-expanded", "true");
   mobileMenuToggle.setAttribute("aria-label", "关闭导航菜单");
   document.body.classList.add("mobile-menu-open");
 }
 
 function closeMobileMenu() {
+  window.clearTimeout(mobileMenuTransitionTimer);
   mobileMenu.classList.remove("open");
-  mobileMenu.hidden = true;
   mobileMenuToggle.setAttribute("aria-expanded", "false");
   mobileMenuToggle.setAttribute("aria-label", "打开导航菜单");
   document.body.classList.remove("mobile-menu-open");
+  scheduleProjectAutoplay();
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    mobileMenu.hidden = true;
+    return;
+  }
+  mobileMenuTransitionTimer = window.setTimeout(() => {
+    if (!mobileMenu.classList.contains("open")) mobileMenu.hidden = true;
+  }, 280);
 }
 
-function mediaContentMarkup(project, { preview = false } = {}) {
+function mediaContentMarkup(project, { preview = false, lazy = false } = {}) {
+  const imageLoading = lazy ? ' loading="lazy" decoding="async"' : ' decoding="async"';
   if (project.mediaType === "video") {
-    if (preview) return `<img src="${project.poster}" alt="${project.title}">`;
-    return `<video src="${project.media}" poster="${project.poster}" aria-label="${project.title}" autoplay muted loop playsinline preload="auto"></video><span class="video-loading" role="status" aria-label="视频加载中"></span>`;
+    if (preview) return `<img src="${project.poster}" alt="${project.title}"${imageLoading}>`;
+    return `<video src="${project.media}" poster="${project.poster}" aria-label="${project.title}" autoplay muted loop playsinline preload="auto"></video><span class="video-loading" role="status" aria-label="视频加载中"><i class="video-loader-card"></i><i class="video-loader-card"></i><i class="video-loader-card"></i><i class="video-loader-card"></i></span>`;
   }
   if (project.mediaType === "placeholder") {
     return `<div class="project-placeholder" role="img" aria-label="${project.title}"></div>`;
   }
-  return `<img src="${project.media}" alt="${project.title}">`;
+  return `<img src="${project.media}" alt="${project.title}"${imageLoading}>`;
 }
 
-function mediaMarkup(project) {
-  return `<div class="media">${mediaContentMarkup(project, { preview: true })}</div>`;
+function mediaMarkup(project, { lazy = false } = {}) {
+  return `<div class="media">${mediaContentMarkup(project, { preview: true, lazy })}</div>`;
 }
 
 function syncVideoPlayback() {
@@ -149,14 +204,55 @@ function syncVideoPlayback() {
   });
 }
 
+function createCardLoaderAnimations(loader) {
+  if (!loader || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return [];
+  const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  const phase = (time, start, end) => Math.max(0, Math.min(1, (time - start) / (end - start)));
+  return [...loader.querySelectorAll(".video-loader-card")].map((card, index) => {
+    const frames = Array.from({ length: 177 }, (_, frame) => {
+      const step = Math.floor(frame / 44) % 4;
+      const time = (frame % 44) / 44;
+      const lag = index * .055;
+      const moveTime = phase(time, .05 + lag, .65 + lag);
+      const sizeTime = phase(time, .19 + lag, .72 + lag);
+      const move = 1 + 2.55 * (moveTime - 1) ** 3 + 1.55 * (moveTime - 1) ** 2;
+      const sizeProgress = sizeTime * sizeTime * (3 - 2 * sizeTime);
+      const small = step % 2 === 0 ? 1 - sizeProgress : sizeProgress;
+      const size = 40 - 19 * small;
+      const radius = 12 + 1.5 * small;
+      const from = corners[(index + step) % 4];
+      const to = corners[(index + step + 1) % 4];
+      const x = (from[0] + (to[0] - from[0]) * move) * radius;
+      const y = (from[1] + (to[1] - from[1]) * move) * radius;
+      return {
+        offset: frame / 176,
+        width: `${size}px`,
+        height: `${size}px`,
+        transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
+      };
+    });
+    const animation = card.animate(frames, { duration: 6160, iterations: Infinity, easing: "linear" });
+    animation.playbackRate = 2;
+    return animation;
+  });
+}
+
 function bindFeaturedVideoLoading() {
   const container = document.querySelector(".featured-media");
   const video = container.querySelector("video");
+  const loader = container.querySelector(".video-loading");
+  const loaderAnimations = createCardLoaderAnimations(loader);
   container.classList.toggle("has-video", Boolean(video));
   container.classList.toggle("video-is-loading", Boolean(video));
   if (!video) return;
-  const showLoading = () => container.classList.add("video-is-loading");
-  const hideLoading = () => container.classList.remove("video-is-loading");
+  const showLoading = () => {
+    container.classList.add("video-is-loading");
+    loaderAnimations.forEach(animation => animation.play());
+  };
+  const hideLoading = () => {
+    container.classList.remove("video-is-loading");
+    loaderAnimations.forEach(animation => animation.pause());
+  };
   const hideAfterPresentedFrame = () => {
     if ("requestVideoFrameCallback" in video) {
       video.requestVideoFrameCallback(() => hideLoading());
@@ -177,15 +273,72 @@ function bindFeaturedVideoLoading() {
   if (!video.paused && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) hideAfterPresentedFrame();
 }
 
-gallery.innerHTML = `<div class="gallery-grid">${projects.map((project, index) => `
+const pinnedProjectIndexes = [0, 1];
+const otherProjectIndexes = projects.map((_, index) => index).filter(index => !pinnedProjectIndexes.includes(index));
+const zhihuProjectIndexes = [];
+const otherStandaloneProjectIndexes = otherProjectIndexes.filter(index => !zhihuProjectIndexes.includes(index));
+const galleryCardMarkup = index => {
+  const project = projects[index];
+  return `
   <button class="gallery-card" type="button" data-project="${index}" aria-label="查看 ${project.title}">
-    ${mediaMarkup(project)}
+    ${mediaMarkup(project, { lazy: true })}
     <span class="gallery-copy">
       <span class="project-title">${project.title}</span>
       <span class="project-category">${project.category}</span>
       <span>${project.date}</span>
     </span>
-  </button>`).join("")}</div>`;
+  </button>`;
+};
+const galleryCardsMarkup = indexes => indexes.map(galleryCardMarkup).join("");
+const zhihuStackMarkup = zhihuProjectIndexes.length
+  ? `<div class="gallery-stack" aria-label="知乎项目组">${galleryCardsMarkup(zhihuProjectIndexes)}</div>`
+  : "";
+
+gallery.innerHTML = `<div class="gallery-sections">
+  <section class="gallery-group" aria-labelledby="gallery-pinned-title">
+    <h2 class="gallery-group-title" id="gallery-pinned-title">Pinned<svg class="gallery-group-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"/></svg></h2>
+    <div class="gallery-grid is-single-row">${galleryCardsMarkup(pinnedProjectIndexes)}</div>
+  </section>
+  <section class="gallery-group" aria-labelledby="gallery-other-title">
+    <h2 class="gallery-group-title" id="gallery-other-title">Other Projects</h2>
+    <div class="gallery-grid is-single-row">${zhihuStackMarkup}${galleryCardsMarkup(otherStandaloneProjectIndexes)}</div>
+  </section>
+</div>`;
+
+function layoutGalleryRows() {
+  const columns = window.matchMedia("(max-width: 560px)").matches
+    ? 2
+    : window.matchMedia("(max-width: 900px)").matches ? 3 : 4;
+  gallery.querySelectorAll(".gallery-grid").forEach(grid => {
+    const cards = [...grid.querySelectorAll(".gallery-card")];
+    const stack = grid.querySelector(".gallery-stack");
+    const usesHoverStack = Boolean(stack && window.matchMedia("(hover: hover)").matches);
+    cards.forEach(card => {
+      card.style.gridRow = "";
+      card.style.gridColumn = "";
+    });
+    if (stack) {
+      stack.style.gridRow = "";
+      stack.style.gridColumn = "";
+    }
+    const items = usesHoverStack
+      ? [...grid.children].filter(item => item.classList.contains("gallery-card") || item.classList.contains("gallery-stack"))
+      : cards;
+    const rows = 1;
+    grid.style.setProperty("--gallery-columns", columns);
+    grid.style.setProperty("--gallery-rows", rows);
+    items.forEach((item, index) => {
+      const pageSize = columns * rows;
+      const page = Math.floor(index / pageSize);
+      const position = index % pageSize;
+      item.style.gridRow = String(Math.floor(position / columns) + 1);
+      item.style.gridColumn = String(page * columns + (position % columns) + 1);
+    });
+  });
+}
+
+layoutGalleryRows();
+window.addEventListener("resize", layoutGalleryRows, { passive: true });
 
 dots.innerHTML = projects.map((_, index) => `<button class="project-dot${index === 0 ? " active" : ""}" type="button" data-project="${index}" aria-label="查看项目 ${index + 1}"></button>`).join("");
 
@@ -229,21 +382,40 @@ async function changeProject(direction) {
   }
   if (window.matchMedia("(max-width: 900px)").matches) {
     const project = page.querySelector(".featured-project");
+    const nextIndex = (activeProject + direction + projects.length) % projects.length;
+    const nextProject = projects[nextIndex];
+    const projectRect = project.getBoundingClientRect();
+    const incomingProject = project.cloneNode(true);
+    const incomingMedia = incomingProject.querySelector(".featured-media");
+    incomingMedia.className = "media featured-media";
+    incomingMedia.innerHTML = mediaContentMarkup(nextProject, { preview: true });
+    incomingProject.querySelector(".project-title").textContent = nextProject.title;
+    incomingProject.querySelector(".project-category").textContent = nextProject.category;
+    incomingProject.querySelector(".project-description").textContent = nextProject.description;
+    incomingProject.querySelector(".project-date").textContent = nextProject.date;
+    incomingProject.classList.add("mobile-carousel-card");
+    Object.assign(incomingProject.style, {
+      left: `${projectRect.left}px`,
+      top: `${projectRect.top}px`,
+      width: `${projectRect.width}px`,
+      height: `${projectRect.height}px`,
+    });
+    document.body.appendChild(incomingProject);
     page.classList.add("is-transitioning");
-    const slideDistance = Math.max(project.getBoundingClientRect().width, window.innerWidth);
+    const slideDistance = window.innerWidth;
     const slideOut = project.animate([
       { transform: "translateX(0)" },
       { transform: `translateX(${-direction * slideDistance}px)` },
-    ], { duration: 220, easing: "cubic-bezier(.4, 0, .2, 1)", fill: "forwards" });
-    await slideOut.finished;
-    activeProject = (activeProject + direction + projects.length) % projects.length;
-    renderProject();
-    slideOut.cancel();
-    const slideIn = project.animate([
+    ], { duration: mobileCarouselDuration, easing: carouselEasing, fill: "forwards" });
+    const slideIn = incomingProject.animate([
       { transform: `translateX(${direction * slideDistance}px)` },
       { transform: "translateX(0)" },
-    ], { duration: 260, easing: "cubic-bezier(.22, 1, .36, 1)" });
-    await slideIn.finished;
+    ], { duration: mobileCarouselDuration, easing: carouselEasing, fill: "forwards" });
+    await Promise.all([slideOut.finished, slideIn.finished]);
+    activeProject = nextIndex;
+    renderProject();
+    slideOut.cancel();
+    incomingProject.remove();
     page.classList.remove("is-transitioning");
     return;
   }
@@ -375,14 +547,28 @@ async function showGridWithTransition() {
   const copy = document.querySelector(".featured-copy");
   const arrows = [...document.querySelectorAll(".project-arrow")];
   const galleryPage = document.querySelector(".gallery-page");
-  const galleryGrid = galleryPage.querySelector(".gallery-grid");
+  const galleryGrid = galleryPage.querySelector(".gallery-sections");
   const galleryCards = [...galleryPage.querySelectorAll(".gallery-card")];
   updateViewControls("gallery");
   galleryPage.classList.add("transition-grid");
   galleryCards.forEach(card => { card.style.opacity = "0"; });
 
   const sourceRect = media.getBoundingClientRect();
-  const target = galleryPage.querySelectorAll(".gallery-card .media")[activeProject];
+  const target = galleryPage.querySelector(`.gallery-card[data-project="${activeProject}"] .media`);
+  const targetScroller = target.closest(".gallery-grid");
+  const targetCard = target.closest(".gallery-card");
+  const targetGridItem = targetCard.closest(".gallery-stack") || targetCard;
+  const targetLeft = targetGridItem.offsetLeft;
+  const targetRight = targetLeft + targetGridItem.offsetWidth;
+  const currentScrollLeft = targetScroller.scrollLeft;
+  let targetScrollLeft = currentScrollLeft;
+  if (targetLeft < currentScrollLeft) {
+    targetScrollLeft = targetLeft;
+  } else if (targetRight > currentScrollLeft + targetScroller.clientWidth) {
+    targetScrollLeft = targetRight - targetScroller.clientWidth;
+  }
+  targetScrollLeft = Math.max(0, Math.min(targetScrollLeft, targetScroller.scrollWidth - targetScroller.clientWidth));
+  const horizontalScrollDistance = targetScrollLeft - currentScrollLeft;
   target.style.opacity = "0";
   const targetStartRect = target.getBoundingClientRect();
   const galleryRect = galleryPage.getBoundingClientRect();
@@ -396,7 +582,7 @@ async function showGridWithTransition() {
   targetScrollTop = Math.max(0, Math.min(targetScrollTop, galleryPage.scrollHeight - galleryPage.clientHeight));
   const scrollDistance = targetScrollTop - galleryPage.scrollTop;
   const targetRect = {
-    left: targetStartRect.left,
+    left: targetStartRect.left - horizontalScrollDistance,
     top: targetStartRect.top - scrollDistance,
     width: targetStartRect.width,
     height: targetStartRect.height,
@@ -435,14 +621,24 @@ async function showGridWithTransition() {
     { transform: "translateY(0)" },
     { transform: `translateY(${-scrollDistance}px)` },
   ], { duration: carouselDuration, easing: carouselEasing, fill: "forwards" }) : null;
+  const rowScrollAnimations = Math.abs(horizontalScrollDistance) > 1
+    ? [...targetScroller.querySelectorAll(".gallery-card")].map(card => card.animate([
+      { transform: "translateX(0)" },
+      { transform: `translateX(${-horizontalScrollDistance}px)` },
+    ], { duration: carouselDuration, easing: carouselEasing, fill: "forwards" }))
+    : [];
   const cardReveals = galleryCards.map(card => card.animate([
       { opacity: 0 },
       { opacity: 1 },
     ], { duration: 260, easing: "ease-out", fill: "forwards" }));
-  await Promise.all([cardAnimation.finished, gridScrollAnimation?.finished]);
+  await Promise.all([cardAnimation.finished, gridScrollAnimation?.finished, ...rowScrollAnimations.map(animation => animation.finished)]);
   if (gridScrollAnimation) {
     galleryPage.scrollTop = targetScrollTop;
     gridScrollAnimation.cancel();
+  }
+  if (rowScrollAnimations.length) {
+    targetScroller.scrollLeft = targetScrollLeft;
+    rowScrollAnimations.forEach(animation => animation.cancel());
   }
   setView("gallery");
   galleryPage.classList.remove("transition-grid");
@@ -476,7 +672,7 @@ async function showSelectedWithTransition(projectIndex = activeProject) {
   const selectedPage = document.querySelector(".selected-page");
   const galleryPage = document.querySelector(".gallery-page");
   const galleryCards = [...galleryPage.querySelectorAll(".gallery-card")];
-  const sourceMedia = galleryCards[activeProject].querySelector(".media");
+  const sourceMedia = galleryPage.querySelector(`.gallery-card[data-project="${activeProject}"] .media`);
   const targetMedia = document.querySelector(".featured-media");
   const copy = document.querySelector(".featured-copy");
   const arrows = [...document.querySelectorAll(".project-arrow")];
@@ -548,6 +744,7 @@ function updateViewControls(view) {
 
 function setView(view) {
   activeView = view;
+  projectAutoplayActive = false;
   document.querySelectorAll(".page").forEach(page => page.classList.toggle("active", page.id === view));
   updateViewControls(view);
   dots.style.display = view === "selected" ? "flex" : "none";
@@ -555,6 +752,7 @@ function setView(view) {
   if (window.location.hash !== viewHash) window.history.replaceState(null, "", viewHash);
   syncVideoPlayback();
   if (view === "selected") window.requestAnimationFrame(alignSideCards);
+  scheduleProjectAutoplay();
 }
 
 function setViewWithFade(view) {
@@ -913,14 +1111,22 @@ function finishFeaturedDrag(event) {
 
   if (featuredMedia.hasPointerCapture(event.pointerId)) featuredMedia.releasePointerCapture(event.pointerId);
   featuredMedia.classList.remove("is-dragging");
-  featuredMedia.style.transition = `transform ${shouldSwitch ? 90 : 240}ms cubic-bezier(.22, 1, .36, 1)`;
+  if (shouldSwitch) {
+    featuredMedia.style.transition = "none";
+    featuredMedia.style.transform = "";
+    window.requestAnimationFrame(() => {
+      featuredMedia.style.transition = "";
+      changeProject(direction);
+    });
+    return;
+  }
+  featuredMedia.style.transition = "transform 240ms cubic-bezier(.22, 1, .36, 1)";
   featuredMedia.style.transform = "translateX(0)";
 
   window.setTimeout(() => {
     featuredMedia.style.transition = "";
     featuredMedia.style.transform = "";
-    if (shouldSwitch) changeProject(direction);
-  }, shouldSwitch ? 90 : 240);
+  }, 240);
 }
 
 featuredMedia.addEventListener("pointerup", finishFeaturedDrag);
@@ -971,6 +1177,14 @@ const requestedView = window.location.hash.slice(1);
 const initialView = ["selected", "gallery", "about"].includes(requestedView) ? requestedView : "selected";
 if (initialView !== "selected") setView(initialView);
 renderProject();
+scheduleProjectAutoplay();
+document.addEventListener("pointerdown", registerProjectInteraction, { passive: true });
+document.addEventListener("wheel", registerProjectInteraction, { passive: true });
+document.addEventListener("keydown", registerProjectInteraction);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) projectAutoplayActive = false;
+  scheduleProjectAutoplay();
+});
 window.addEventListener("resize", alignSideCards);
 window.addEventListener("pageshow", () => {
   document.body.classList.remove("page-leaving");
