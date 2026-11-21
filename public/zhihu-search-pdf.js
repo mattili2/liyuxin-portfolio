@@ -285,29 +285,8 @@ function renderRemainingOnDemand(canvasesToObserve) {
         updateActivePage();
       });
     });
-  }, { rootMargin: "200% 0px" });
+  }, { rootMargin: isPhoneProject ? "35% 0px" : "75% 0px" });
   canvasesToObserve.forEach(canvas => observer.observe(canvas));
-}
-
-function preloadDuringIdle(canvasesToPreload) {
-  let nextIndex = 0;
-  const scheduleNext = () => {
-    if (nextIndex >= canvasesToPreload.length) return;
-    const run = async () => {
-      const canvas = canvasesToPreload[nextIndex];
-      nextIndex += 1;
-      await ensureCanvasRendered(canvas, 100).catch(() => {});
-      updateEndSpacing();
-      updateActivePage();
-      scheduleNext();
-    };
-    if ("requestIdleCallback" in window) {
-      window.requestIdleCallback(() => run(), { timeout: 1500 });
-    } else {
-      window.setTimeout(run, 220);
-    }
-  };
-  scheduleNext();
 }
 
 async function initialRender() {
@@ -325,7 +304,6 @@ async function initialRender() {
       updateActivePage();
       window.finishProjectLoading?.();
       loadingFinished = true;
-      await ensureCanvasRendered(firstCanvas, 2000);
     } else {
       const firstPageImages = [...pages[0].querySelectorAll("img")];
       await Promise.all(firstPageImages.map((image) => image.complete
@@ -340,13 +318,10 @@ async function initialRender() {
     if (!loadingFinished) window.finishProjectLoading?.();
     const remainingCanvases = firstCanvas ? canvases.filter((canvas) => canvas !== firstCanvas) : canvases;
     renderRemainingOnDemand(remainingCanvases);
-    const immediatePreload = remainingCanvases.slice(0, 3);
-    const idlePreload = remainingCanvases.slice(3);
-    Promise.all(immediatePreload.map((canvas) => ensureCanvasRendered(canvas, 700))).then(() => {
+    ensureCanvasRendered(firstCanvas, 2000).then(() => {
       updateEndSpacing();
       updateActivePage();
-    });
-    preloadDuringIdle(idlePreload);
+    }).catch(() => {});
   } catch (error) {
     window.finishProjectLoading?.();
     throw error;

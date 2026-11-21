@@ -606,6 +606,7 @@ body.about-view .site-header { padding: 20px var(--page-x); transform: none; }
   .about-tool-grid > div { font-size: 14px; }
   .about-tool-grid > div { grid-template-columns: 40px auto; }
   .selected-page { align-items: center; padding-top: 0; padding-bottom: 0; }
+  .selected-page .featured-project { align-self: center; }
 }
 @media (min-width: 901px) {
   .about-page {
