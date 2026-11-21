@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=Inter:wght@400&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='white'/%3E%3Crect x='7' y='7' width='18' height='18' fill='%235f5f5f'/%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="style.css?v=20261101-stack-full-bleed" />
+    <link rel="stylesheet" href="style.css?v=20261121-nav6" />
   </head>
   <body>
     <div class="site-shell">
@@ -61,9 +61,103 @@
         <section class="page gallery-page" id="gallery" aria-label="精选项目网格视图"></section>
 
         <section class="page about-page" id="about" aria-label="关于">
-          <div class="about-copy">
-            <p>我是一名用户体验/ UX 设计师，目前就读于荷兰代尔夫特理工大学工业设计学院。我拥有建筑学的跨学科背景，同时喜欢插画，摄影和剪辑。</p>
-            <p class="muted">在设计过程中，我注重清晰与逻辑。</p>
+          <div class="about-content">
+            <header class="about-hero">
+              <div class="about-hero-copy">
+                <h1>关于我</h1>
+                <p class="about-lead">我是一名拥有跨学科背景的设计师，同时擅长插画、摄影与剪辑。<br>我关注AIGC 生产流程与AI协同设计，拥有真实海外产品设计经验，参与过知识内容社区、AI 产品、智能电视系统等项目设计，能够将复杂需求转化为清晰、可操作的体验，并推进设计从原型走向落地。</p>
+              </div>
+              <img class="about-illustrations" src="assets/about/about-illustrations.png" alt="设计工作场景手绘插画" />
+            </header>
+
+            <section class="about-section" aria-labelledby="about-experience">
+              <h2 id="about-experience">实践经历</h2>
+              <div class="about-list">
+                <article class="about-entry">
+                  <div class="about-entry-heading">
+                    <h3>知乎</h3>
+                    <p>产品设计实习生 / 社区产品部 / 2026.09 – 至今</p>
+                  </div>
+                  <ul>
+                    <li>核心产品体验优化：参与搜索、问题、推荐等内容消费场景优化，从业务需求、用户行为及现有链路定位体验问题，参与需求分析、方案评审、设计交付及验收。</li>
+                    <li>AI「看山」优化：参与知乎 AI 功能「看山」的体验迭代，围绕 AI 入口、交互链路、结果承接拆解需求，协同产品与研发推进落地。</li>
+                  </ul>
+                </article>
+                <article class="about-entry">
+                  <div class="about-entry-heading">
+                    <h3>北京智谱华章科技股份有限公司</h3>
+                    <p>设计实习生 / 智谱清言部 / 2026.08</p>
+                  </div>
+                  <ul>
+                    <li>交互设计：参与智谱清言 Agentmore 移动端与网页端的信息架构与交互链路设计。</li>
+                    <li>快速原型：使用 Vibe Coding 快速搭建产品工具、活动页面和创意 Demo。</li>
+                  </ul>
+                </article>
+                <article class="about-entry">
+                  <div class="about-entry-heading">
+                    <h3>Whale TV</h3>
+                    <p>交互设计实习生 / 产品设计与用户体验设计部 / 2025.01 - 2025.06</p>
+                  </div>
+                  <ul>
+                    <li>用户研究：通过原型测试、用户访谈与线上反馈，梳理电视使用过程中的核心体验问题。</li>
+                    <li>交互设计：负责海外智能电视操作系统的体验优化，完成 Home、Discovery、Apps 等核心模块的交互流程设计。</li>
+                    <li>交互文档整理：整理交互说明与设计规范，明确页面状态及交互逻辑，支持跨部门协作。</li>
+                  </ul>
+                </article>
+              </div>
+            </section>
+
+            <div class="about-final-page">
+              <section class="about-section about-education" aria-labelledby="about-education">
+                <h2 id="about-education">教育</h2>
+                <div class="about-list about-education-list">
+                  <article class="about-entry">
+                    <div class="about-entry-heading">
+                      <h3>代尔夫特理工大学（TU Delft）</h3>
+                      <p>交互设计硕士, 工业设计工程学院（QS艺术与设计全球第11）/ 2025-2027</p>
+                    </div>
+                  </article>
+                  <article class="about-entry">
+                    <div class="about-entry-heading">
+                      <h3>中央美术学院</h3>
+                      <p>建筑学学士 / GPA：88.28/100（专业排名前 10%）/ 2020-2025</p>
+                    </div>
+                  </article>
+                  <article class="about-entry">
+                    <div class="about-entry-heading">
+                      <h3>奥胡斯建筑学院（Aarhus School of Architecture）</h3>
+                      <p>交换项目 / 2024.01–2024.06</p>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="about-section about-capabilities" aria-labelledby="about-skills">
+                <h2 id="about-skills">技能</h2>
+                <div class="about-tag-group" aria-label="专业能力">
+                  <span>用户流与信息架构</span><span>UXUI</span><span>用户研究与数据分析</span><span>设计系统</span><span>前端原型开发</span><span>插画</span><span>视频拍摄与剪辑</span><span>3D 建模</span>
+                </div>
+              </section>
+
+              <section class="about-section about-tools" aria-labelledby="about-tools">
+                <h2 id="about-tools">工具</h2>
+                <div aria-label="工具">
+                  <div class="about-tool-grid">
+                    <div><img src="assets/about/figma.png" alt="" /><span>Figma</span></div>
+                    <div><img src="assets/about/framer.png" alt="" /><span>Framer</span></div>
+                    <div><img src="assets/about/adobe-suite.png" alt="" /><span>Adobe Suite</span></div>
+                    <div><img src="assets/about/vscode.png" alt="" /><span>VS Code</span></div>
+                    <div><img src="assets/about/rhino.png" alt="" /><span>Rhino</span></div>
+                    <div><img src="assets/about/codex.png" alt="" /><span>Codex</span></div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="about-section about-language" aria-labelledby="about-language">
+                <h2 id="about-language">语言</h2>
+                <p>英语：流利 (TOEFL 108)</p>
+              </section>
+            </div>
           </div>
         </section>
       </main>
@@ -82,6 +176,6 @@
         </div>
       </footer>
     </div>
-  <script src="script.js?v=20261120-titles1"></script>
+  <script src="script.js?v=20261121-about1"></script>
   </body>
 </html>

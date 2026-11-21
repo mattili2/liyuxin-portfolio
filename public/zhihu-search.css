@@ -46,6 +46,7 @@ body.ambient-reader .pdf-page + .pdf-page {
 
 body.ambient-reader .project-header {
   align-items: center;
+  min-height: 64px;
   padding: 20px 20px 16px;
   background: #fff;
   transform: none;
@@ -424,6 +425,13 @@ body.project-menu-open .project-close { opacity: 0; pointer-events: none; }
 }
 .pdf-page + .pdf-page { margin-top: 68px; }
 .pdf-page > canvas[data-pdf] { position: relative; z-index: 1; display: block; width: 100%; height: 100%; background: #fff; }
+.pdf-page.has-page-preview {
+  background-image: var(--page-preview);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+.pdf-page.has-page-preview > canvas[data-pdf] { background: transparent; }
 .page-halo {
   position: absolute;
   inset: -68px;
@@ -674,9 +682,9 @@ html.compact-project .landscape-phone-icon::after {
   html.compact-project { overflow: hidden; }
   html.compact-project body { overflow-x: hidden; overflow-y: auto; }
   html.compact-project .project-header {
-    padding: 32px 20px 12px;
+    padding: 20px 20px 16px;
     background: #fff;
-    transform: translateY(-8px);
+    transform: none;
   }
   html.compact-project .project-header::before { content: none; }
   html.project-theme-dark.compact-project body.project-theme-dark .project-header {
@@ -717,7 +725,7 @@ html.compact-project .landscape-phone-icon::after {
 }
 @keyframes phone-turn { to { transform: rotate(90deg); } }
 @media (max-width: 560px) {
-  html.compact-project .project-header { padding-top: 24px; }
+  html.compact-project .project-header { padding-top: 20px; }
   .project-footer { font-size: 10px; line-height: 10px; }
 }
 

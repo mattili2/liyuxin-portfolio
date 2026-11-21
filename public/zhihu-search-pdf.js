@@ -7,6 +7,9 @@ const pages = [...document.querySelectorAll(".pdf-page")];
 const deck = document.querySelector(".pdf-deck");
 const documents = new Map();
 const renderedCanvases = new WeakSet();
+const renderJobs = new WeakMap();
+const renderQueue = [];
+let activeRenderCount = 0;
 const progressFill = document.querySelector(".project-progress-fill");
 let resizeTimer;
 let scrollFrame;
@@ -16,6 +19,37 @@ const isPhoneProject = navigator.userAgentData?.mobile === true ||
   /Android|iPhone|iPod|Mobile/i.test(navigator.userAgent) ||
   (window.matchMedia("(pointer: coarse) and (hover: none)").matches && Math.min(screen.width, screen.height) <= 600);
 document.documentElement.classList.toggle("phone-project", isPhoneProject);
+if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+document.body.scrollTop = 0;
+
+canvases.forEach((canvas) => {
+  const pdfPath = canvas.dataset.pdf?.split("?")[0];
+  if (!pdfPath) return;
+  const previewPath = pdfPath.replace(/-pdf\/([^/]+)\.pdf$/, "-preview/$1.jpg");
+  if (previewPath === pdfPath) return;
+  canvas.parentElement.style.setProperty("--page-preview", `url('${previewPath}')`);
+  canvas.parentElement.dataset.preview = previewPath;
+  canvas.parentElement.classList.add("has-page-preview");
+});
+
+function waitForPagePreview(page) {
+  const previewPath = page?.dataset.preview;
+  if (!previewPath) return Promise.resolve();
+  return new Promise((resolve) => {
+    const image = new Image();
+    const finish = () => resolve();
+    const timeout = window.setTimeout(finish, 3000);
+    image.addEventListener("load", () => {
+      window.clearTimeout(timeout);
+      finish();
+    }, { once: true });
+    image.addEventListener("error", () => {
+      window.clearTimeout(timeout);
+      finish();
+    }, { once: true });
+    image.src = previewPath;
+  });
+}
 
 function updateMobileLandscape(showHint = true) {
   const isCompactProject = isPhoneProject || window.matchMedia("(max-width: 900px)").matches;
@@ -135,6 +169,45 @@ async function renderCanvas(canvas) {
   renderedCanvases.add(canvas);
 }
 
+function pumpRenderQueue() {
+  const concurrency = isPhoneProject ? 1 : 2;
+  renderQueue.sort((a, b) => b.priority - a.priority);
+  while (activeRenderCount < concurrency && renderQueue.length) {
+    const job = renderQueue.shift();
+    if (job.started) continue;
+    job.started = true;
+    activeRenderCount += 1;
+    renderCanvas(job.canvas)
+      .then(job.resolve, job.reject)
+      .finally(() => {
+        activeRenderCount -= 1;
+        renderJobs.delete(job.canvas);
+        pumpRenderQueue();
+      });
+  }
+}
+
+function ensureCanvasRendered(canvas, priority = 0) {
+  if (!canvas || renderedCanvases.has(canvas)) return Promise.resolve();
+  const existingJob = renderJobs.get(canvas);
+  if (existingJob) {
+    existingJob.priority = Math.max(existingJob.priority, priority);
+    pumpRenderQueue();
+    return existingJob.promise;
+  }
+  let resolveJob;
+  let rejectJob;
+  const promise = new Promise((resolve, reject) => {
+    resolveJob = resolve;
+    rejectJob = reject;
+  });
+  const job = { canvas, priority, promise, resolve: resolveJob, reject: rejectJob, started: false };
+  renderJobs.set(canvas, job);
+  renderQueue.push(job);
+  pumpRenderQueue();
+  return promise;
+}
+
 function updateEdgeMirrors(canvas, pixelRatio) {
   const page = canvas.parentElement;
   const padding = Math.max(1, Math.round(68 * pixelRatio));
@@ -196,7 +269,7 @@ async function renderAll() {
 
 function renderRemainingOnDemand(canvasesToObserve) {
   if (!("IntersectionObserver" in window)) {
-    Promise.all(canvasesToObserve.map(renderCanvas)).then(() => {
+    Promise.all(canvasesToObserve.map((canvas) => ensureCanvasRendered(canvas, 800))).then(() => {
       updateEndSpacing();
       updateActivePage();
     });
@@ -207,13 +280,34 @@ function renderRemainingOnDemand(canvasesToObserve) {
       if (!entry.isIntersecting) return;
       const canvas = entry.target;
       observer.unobserve(canvas);
-      renderCanvas(canvas).then(() => {
+      ensureCanvasRendered(canvas, 1000).then(() => {
         updateEndSpacing();
         updateActivePage();
       });
     });
-  }, { rootMargin: "150% 0px" });
+  }, { rootMargin: "200% 0px" });
   canvasesToObserve.forEach(canvas => observer.observe(canvas));
+}
+
+function preloadDuringIdle(canvasesToPreload) {
+  let nextIndex = 0;
+  const scheduleNext = () => {
+    if (nextIndex >= canvasesToPreload.length) return;
+    const run = async () => {
+      const canvas = canvasesToPreload[nextIndex];
+      nextIndex += 1;
+      await ensureCanvasRendered(canvas, 100).catch(() => {});
+      updateEndSpacing();
+      updateActivePage();
+      scheduleNext();
+    };
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(() => run(), { timeout: 1500 });
+    } else {
+      window.setTimeout(run, 220);
+    }
+  };
+  scheduleNext();
 }
 
 async function initialRender() {
@@ -224,8 +318,14 @@ async function initialRender() {
 
   try {
     const firstCanvas = pages[0].querySelector("canvas[data-pdf]");
+    let loadingFinished = false;
     if (firstCanvas) {
-      await renderCanvas(firstCanvas);
+      await waitForPagePreview(firstCanvas.parentElement);
+      updateEndSpacing();
+      updateActivePage();
+      window.finishProjectLoading?.();
+      loadingFinished = true;
+      await ensureCanvasRendered(firstCanvas, 2000);
     } else {
       const firstPageImages = [...pages[0].querySelectorAll("img")];
       await Promise.all(firstPageImages.map((image) => image.complete
@@ -237,9 +337,16 @@ async function initialRender() {
     }
     updateEndSpacing();
     updateActivePage();
-    window.finishProjectLoading?.();
+    if (!loadingFinished) window.finishProjectLoading?.();
     const remainingCanvases = firstCanvas ? canvases.filter((canvas) => canvas !== firstCanvas) : canvases;
     renderRemainingOnDemand(remainingCanvases);
+    const immediatePreload = remainingCanvases.slice(0, 3);
+    const idlePreload = remainingCanvases.slice(3);
+    Promise.all(immediatePreload.map((canvas) => ensureCanvasRendered(canvas, 700))).then(() => {
+      updateEndSpacing();
+      updateActivePage();
+    });
+    preloadDuringIdle(idlePreload);
   } catch (error) {
     window.finishProjectLoading?.();
     throw error;
@@ -260,20 +367,11 @@ if (isAmbientReader) {
       return;
     }
     const header = document.querySelector(".project-header");
-    const footer = document.querySelector(".project-footer");
-    const firstPage = pages[0];
     const headerHeight = controlsVisible && header && getComputedStyle(header).display !== "none"
       ? Math.ceil(header.getBoundingClientRect().height)
       : 0;
-    const footerHeight = controlsVisible && footer && getComputedStyle(footer).display !== "none"
-      ? Math.ceil(footer.getBoundingClientRect().height)
-      : 0;
-    const availableHeight = Math.max(1, document.body.clientHeight - headerHeight - footerHeight);
-    const firstPageScale = controlsVisible && firstPage
-      ? Math.min(1, availableHeight / firstPage.offsetHeight)
-      : 1;
     deck.style.setProperty("--reader-menu-offset", `${headerHeight}px`);
-    deck.style.setProperty("--reader-first-page-scale", firstPageScale.toFixed(4));
+    deck.style.setProperty("--reader-first-page-scale", "1");
     document.body.classList.add("reader-menu-visible-at-top");
   };
   const showReaderUi = () => {
@@ -372,4 +470,7 @@ document.querySelectorAll('a[href^="./"]').forEach((link) => {
     window.setTimeout(() => { window.location.href = destination; }, 320);
   });
 });
-window.addEventListener("pageshow", () => document.body.classList.remove("page-leaving"));
+window.addEventListener("pageshow", () => {
+  document.body.classList.remove("page-leaving");
+  document.body.scrollTop = 0;
+});

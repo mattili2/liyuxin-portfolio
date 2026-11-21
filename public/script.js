@@ -744,6 +744,7 @@ function updateViewControls(view) {
 
 function setView(view) {
   activeView = view;
+  document.body.classList.toggle("about-view", view === "about");
   projectAutoplayActive = false;
   document.querySelectorAll(".page").forEach(page => page.classList.toggle("active", page.id === view));
   updateViewControls(view);
