@@ -45,9 +45,9 @@ body.ambient-reader .pdf-page + .pdf-page {
 }
 
 body.ambient-reader .project-header {
-  align-items: center;
+  align-items: flex-start;
   min-height: 64px;
-  padding: 20px 20px 16px;
+  padding: 20px;
   background: #fff;
   transform: none;
 }
@@ -249,15 +249,17 @@ body.project-theme-dark .pdf-page > canvas[data-pdf] {
 }
 .project-close {
   position: fixed;
-  top: 50%;
-  right: 20px;
+  top: auto;
+  right: auto;
+  bottom: 22px;
+  left: 50%;
   z-index: 1050;
   width: 24px;
   height: 24px;
   border: 1px solid currentColor;
   border-radius: 50%;
   color: #595959;
-  transform: translateY(-50%);
+  transform: translateX(-50%);
   transition: transform 180ms ease, background-color 180ms ease, color 180ms ease;
 }
 .project-close::before,
@@ -276,7 +278,7 @@ body.project-theme-dark .pdf-page > canvas[data-pdf] {
 .project-close:focus-visible {
   color: #fff;
   background: #595959;
-  transform: translateY(-50%) scale(1.08);
+  transform: translateX(-50%) scale(1.08);
 }
 .project-header {
   position: fixed;
@@ -287,11 +289,12 @@ body.project-theme-dark .pdf-page > canvas[data-pdf] {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 32px 20px;
+  min-height: 64px;
+  padding: 20px;
   color: #595959;
   background: transparent;
   pointer-events: none;
-  transform: translateY(-8px);
+  transform: none;
 }
 .project-header::before {
   content: "";
@@ -732,4 +735,62 @@ html.compact-project .landscape-phone-icon::after {
 html.project-theme-dark.compact-project .landscape-prompt {
   color: #fff;
   background: #000;
+}
+
+/* Image-first reader: stable progressive loading without multi-megabyte PDF downloads. */
+.pdf-page > .page-image {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: inherit;
+}
+
+@media (max-width: 900px) {
+  .project-nav { display: none; }
+  .project-menu-toggle { display: flex; }
+  .project-header {
+    min-height: 64px;
+    padding: 20px 20px 16px;
+    transform: none;
+  }
+  .project-header::before { content: none; }
+  html.compact-project body.ambient-reader .pdf-deck {
+    padding-top: 64px !important;
+    padding-bottom: max(52px, calc(43px + env(safe-area-inset-bottom))) !important;
+  }
+  .project-footer {
+    min-height: 52px;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    align-items: center;
+    padding: 9px 20px max(9px, env(safe-area-inset-bottom));
+    background: #fff;
+    font-size: 12px;
+    line-height: 12px;
+  }
+  .project-footer-disciplines { display: none; }
+  .project-close,
+  html.compact-project .project-close {
+    top: auto;
+    right: 20px;
+    bottom: max(14px, calc(env(safe-area-inset-bottom) + 5px));
+    left: auto;
+    transform: none;
+  }
+  .project-close:hover,
+  .project-close:focus-visible,
+  html.compact-project .project-close:hover,
+  html.compact-project .project-close:focus-visible { transform: scale(1.08); }
+  html.compact-project .project-footer { padding-inline: 20px; font-size: 12px; line-height: 12px; }
+  html.project-theme-dark.compact-project body.project-theme-dark .project-header,
+  html.project-theme-dark.compact-project body.project-theme-dark .project-footer {
+    color: #fff;
+    background: #000;
+  }
+  html.project-theme-dark.compact-project body.project-theme-dark .project-menu-toggle span { background: #fff; }
+  body.project-theme-dark .project-footer { background: #000; }
 }

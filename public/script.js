@@ -35,16 +35,16 @@ const projectCatalog = [
     media: "assets/agentmore-cover.png?v=20261014-2",
   },
   {
-    title: "MonoLOG",
-    category: "Vibe Coding/ 电脑端App设计",
-    description: "MonoLOG（独白）是一款对话式记录工具，将专注记录融入自然对话，结合 AI 数字陪伴与监督，让整个过程更加自然、低负担、易坚持。",
-    date: "2026.03, 2026.07",
+    title: "Monolog",
+    category: "App设计 Vibe Coding",
+    description: "一款以聊天为核心的个人专注与生活管理 App，从一个未成形的想法开始，将即时记录、任务管理与专注执行融入一个简单的对话空间。",
+    date: "2026.07–2026.08｜个人",
     mediaType: "image",
-    media: "assets/monolog.png",
+    media: "assets/monolog.png?v=20261121-cover2",
   },
   {
     title: "whale tv OS 10",
-    category: "电视操作系统 UX 设计",
+    category: "智能电视系统用户研究与体验优化",
     description: "此项目为在 Whale TV 实习中的工作整理。在本项目中，我主要负责线上和线下两部分的用户测试与分析，并基于研究结果梳理核心痛点，完成交互设计的优化与迭代。",
     date: "2025.02 - 2025.06",
     mediaType: "image",
@@ -52,12 +52,12 @@ const projectCatalog = [
     page: "whale-tv.html",
   },
   {
-    title: "Platte 调色·盘",
-    category: "App设计/ 行为设计",
-    description: "Platte 调色·盘是一款以「在餐盘上调色」为核心概念，通过颜色引导、周期饮食规划和轻社交陪伴，帮助独居年轻人逐步养成健康、多样饮食习惯的 App。",
-    date: "2026.05 - 2026.07",
+    title: "Platte 调色盘",
+    category: "健康饮食行为 App 设计",
+    description: "一款以「在餐盘上调色」为核心概念，通过颜色引导、周期饮食规划和轻社交陪伴，帮助独居年轻人逐步养成健康、多样饮食习惯的 App。",
+    date: "2026.10–2026.11｜6周｜小组",
     mediaType: "image",
-    media: "assets/platte-cover.png?v=20261013-3",
+    media: "assets/platte-cover.png?v=20261121-cover2",
     page: "platte.html",
   },
   {
@@ -279,11 +279,14 @@ const zhihuProjectIndexes = [];
 const otherStandaloneProjectIndexes = otherProjectIndexes.filter(index => !zhihuProjectIndexes.includes(index));
 const galleryCardMarkup = index => {
   const project = projects[index];
+  const pinnedIcon = pinnedProjectIndexes.includes(index)
+    ? `<svg class="project-pin-icon" viewBox="0 0 16 16" aria-label="置顶"><path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"/></svg>`
+    : "";
   return `
   <button class="gallery-card" type="button" data-project="${index}" aria-label="查看 ${project.title}">
     ${mediaMarkup(project, { lazy: true })}
     <span class="gallery-copy">
-      <span class="project-title">${project.title}</span>
+      <span class="gallery-title-row"><span class="project-title">${project.title}</span>${pinnedIcon}</span>
       <span class="project-category">${project.category}</span>
       <span>${project.date}</span>
     </span>
@@ -295,20 +298,16 @@ const zhihuStackMarkup = zhihuProjectIndexes.length
   : "";
 
 gallery.innerHTML = `<div class="gallery-sections">
-  <section class="gallery-group" aria-labelledby="gallery-pinned-title">
-    <h2 class="gallery-group-title" id="gallery-pinned-title">Pinned<svg class="gallery-group-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"/></svg></h2>
+  <section class="gallery-group" aria-label="置顶项目">
     <div class="gallery-grid is-single-row">${galleryCardsMarkup(pinnedProjectIndexes)}</div>
   </section>
-  <section class="gallery-group" aria-labelledby="gallery-other-title">
-    <h2 class="gallery-group-title" id="gallery-other-title">Other Projects</h2>
+  <section class="gallery-group" aria-label="其他项目">
     <div class="gallery-grid is-single-row">${zhihuStackMarkup}${galleryCardsMarkup(otherStandaloneProjectIndexes)}</div>
   </section>
 </div>`;
 
 function layoutGalleryRows() {
-  const columns = window.matchMedia("(max-width: 560px)").matches
-    ? 2
-    : window.matchMedia("(max-width: 900px)").matches ? 3 : 4;
+  const columns = window.matchMedia("(max-width: 900px)").matches ? 2 : 4;
   gallery.querySelectorAll(".gallery-grid").forEach(grid => {
     const cards = [...grid.querySelectorAll(".gallery-card")];
     const stack = grid.querySelector(".gallery-stack");
@@ -828,6 +827,7 @@ document.querySelector(".project-arrow-left").addEventListener("click", () => ch
 document.querySelector(".project-arrow-right").addEventListener("click", () => changeProject(1));
 
 const featuredMedia = document.querySelector(".featured-media");
+const featuredProjectElement = document.querySelector(".featured-project");
 const selectedPage = document.querySelector(".selected-page");
 
 class PaperHover {
@@ -1076,7 +1076,7 @@ featuredMedia.addEventListener("pointerdown", event => {
   featuredMedia.setPointerCapture(event.pointerId);
   paperHover?.reset();
   featuredMedia.classList.add("is-dragging");
-  featuredMedia.style.transition = "none";
+  featuredProjectElement.style.transition = "none";
 });
 
 featuredMedia.addEventListener("pointermove", event => {
@@ -1097,7 +1097,7 @@ featuredMedia.addEventListener("pointermove", event => {
   dragState.lastTime = now;
 
   const resistedX = Math.sign(deltaX) * Math.min(Math.abs(deltaX) * .72, 120);
-  featuredMedia.style.transform = `translateX(${resistedX}px)`;
+  featuredProjectElement.style.transform = `translateX(${resistedX}px)`;
 });
 
 function finishFeaturedDrag(event) {
@@ -1113,20 +1113,20 @@ function finishFeaturedDrag(event) {
   if (featuredMedia.hasPointerCapture(event.pointerId)) featuredMedia.releasePointerCapture(event.pointerId);
   featuredMedia.classList.remove("is-dragging");
   if (shouldSwitch) {
-    featuredMedia.style.transition = "none";
-    featuredMedia.style.transform = "";
+    featuredProjectElement.style.transition = "none";
+    featuredProjectElement.style.transform = "";
     window.requestAnimationFrame(() => {
-      featuredMedia.style.transition = "";
+      featuredProjectElement.style.transition = "";
       changeProject(direction);
     });
     return;
   }
-  featuredMedia.style.transition = "transform 240ms cubic-bezier(.22, 1, .36, 1)";
-  featuredMedia.style.transform = "translateX(0)";
+  featuredProjectElement.style.transition = "transform 240ms cubic-bezier(.22, 1, .36, 1)";
+  featuredProjectElement.style.transform = "translateX(0)";
 
   window.setTimeout(() => {
-    featuredMedia.style.transition = "";
-    featuredMedia.style.transform = "";
+    featuredProjectElement.style.transition = "";
+    featuredProjectElement.style.transform = "";
   }, 240);
 }
 

@@ -1,8 +1,17 @@
-import * as pdfjsLib from "./vendor/pdfjs/pdf.min.mjs";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = "./vendor/pdfjs/pdf.worker.min.mjs";
-
-const canvases = [...document.querySelectorAll("canvas[data-pdf]")];
+const pdfCanvases = [...document.querySelectorAll("canvas[data-pdf]")];
+pdfCanvases.forEach((canvas, index) => {
+  const pdfPath = canvas.dataset.pdf?.split("?")[0] || "";
+  const imagePath = pdfPath.replace(/-pdf\/([^/]+)\.pdf$/, "-preview/$1.png");
+  const image = document.createElement("img");
+  image.className = "page-image";
+  image.src = imagePath;
+  image.alt = canvas.parentElement?.getAttribute("aria-label") || `项目页面 ${index + 1}`;
+  image.decoding = "async";
+  image.loading = index < 2 ? "eager" : "lazy";
+  if (index === 0) image.fetchPriority = "high";
+  canvas.replaceWith(image);
+});
+const canvases = [];
 const pages = [...document.querySelectorAll(".pdf-page")];
 const deck = document.querySelector(".pdf-deck");
 const documents = new Map();
@@ -67,8 +76,21 @@ function updateEndSpacing() {
   if (isAmbientReader) {
     const pageHeight = pages[0]?.offsetHeight || 0;
     const isMobileReader = isPhoneProject || document.documentElement.classList.contains("compact-project");
+    if (isMobileReader) {
+      const header = document.querySelector(".project-header");
+      const footer = document.querySelector(".project-footer");
+      const headerHeight = Math.ceil(header?.getBoundingClientRect().height || 64);
+      const footerHeight = Math.ceil(footer?.getBoundingClientRect().height || 52);
+      document.body.classList.remove("reader-centered");
+      document.body.classList.add("reader-flow");
+      deck.style.setProperty("--reader-edge-space", "0px");
+      deck.style.setProperty("--reader-page-gap", "0px");
+      deck.style.paddingTop = `${headerHeight}px`;
+      deck.style.paddingBottom = `${footerHeight}px`;
+      return;
+    }
     const visiblePageCount = pageHeight ? document.body.clientHeight / pageHeight : 1;
-    const shouldCenterPages = !isMobileReader || visiblePageCount <= 1.2;
+    const shouldCenterPages = visiblePageCount <= 1.2;
     const readerModeChanged = document.body.classList.contains("reader-centered") !== shouldCenterPages;
     document.body.classList.toggle("reader-centered", shouldCenterPages);
     document.body.classList.toggle("reader-flow", !shouldCenterPages);
@@ -334,20 +356,9 @@ if (isAmbientReader) {
   let readerUiIdleTimer = 0;
   let readerAutoHideEnabled = true;
   const updateFirstPageMenuOffset = (controlsVisible) => {
-    if (!document.body.classList.contains("reader-flow")) return;
-    if (!controlsVisible || document.body.scrollTop > 2) {
-      deck.style.setProperty("--reader-menu-offset", "0px");
-      deck.style.setProperty("--reader-first-page-scale", "1");
-      document.body.classList.remove("reader-menu-visible-at-top");
-      return;
-    }
-    const header = document.querySelector(".project-header");
-    const headerHeight = controlsVisible && header && getComputedStyle(header).display !== "none"
-      ? Math.ceil(header.getBoundingClientRect().height)
-      : 0;
-    deck.style.setProperty("--reader-menu-offset", `${headerHeight}px`);
+    deck.style.setProperty("--reader-menu-offset", "0px");
     deck.style.setProperty("--reader-first-page-scale", "1");
-    document.body.classList.add("reader-menu-visible-at-top");
+    document.body.classList.toggle("reader-menu-visible-at-top", Boolean(controlsVisible));
   };
   const showReaderUi = () => {
     window.clearTimeout(readerUiIdleTimer);

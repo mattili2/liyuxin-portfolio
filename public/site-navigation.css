@@ -1,0 +1,37 @@
+:root {
+  --site-nav-height: 64px;
+  --site-nav-x: 20px;
+  --site-nav-y: 20px;
+  --site-nav-brand-size: 16px;
+  --site-nav-brand-line: 19px;
+  --site-nav-link-size: 12px;
+  --site-nav-link-line: 12px;
+  --site-nav-gap: 40px;
+}
+
+.site-header,
+.project-header {
+  min-height: var(--site-nav-height);
+  padding: var(--site-nav-y) var(--site-nav-x);
+  align-items: flex-start;
+}
+
+.brand,
+.project-brand {
+  font: 500 var(--site-nav-brand-size)/var(--site-nav-brand-line) Figtree, Arial, sans-serif;
+  white-space: nowrap;
+}
+
+.main-nav,
+.project-nav {
+  gap: var(--site-nav-gap);
+  font: 400 var(--site-nav-link-size)/var(--site-nav-link-line) Inter, Arial, sans-serif;
+}
+
+@media (max-width: 900px) {
+  .site-header,
+  .project-header {
+    min-height: var(--site-nav-height);
+    padding: var(--site-nav-y) var(--site-nav-x);
+  }
+}
